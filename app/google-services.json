@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "565457477764",
+    "firebase_url": "https://facy-949b7.firebaseio.com",
+    "project_id": "facy-949b7",
+    "storage_bucket": "facy-949b7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565457477764:android:8043c0811a881401",
+        "android_client_info": {
+          "package_name": "com.example.facy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "565457477764-udpk7h7p8i4e28thkc3ns0intammaki3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.facy",
+            "certificate_hash": "9d6c0e944e91bc320e77e75fddbf3e0f0a8d7a83"
+          }
+        },
+        {
+          "client_id": "565457477764-8g6b729ena3n81s2qdohtt36bcje69br.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZgc8smwWIeumFmUTxxRAwpeKz099FsUk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "565457477764-8g6b729ena3n81s2qdohtt36bcje69br.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
