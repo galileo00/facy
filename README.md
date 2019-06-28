@@ -21,6 +21,7 @@ save fotos to storage
 
 
 
+![alt text](https://imgur.com/nPbnvdw.png)
 
 ![alt text](https://imgur.com/QLthkjB.png)
 
@@ -29,7 +30,6 @@ save fotos to storage
 
 
 
-![alt text](https://imgur.com/nPbnvdw.png)
 
 
 
