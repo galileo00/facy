@@ -3410,8 +3410,12 @@ class Hayak_Quick_Order {
         );
 
         if ('yes' === ($upsell['track_pixel'] ?? 'no')) {
+            // Same event name as Hayak_DataLayer: the GTM trigger listens for
+            // `hayak_purchase` only, so the gtag('event','purchase') calls that
+            // Site Kit and Google Listings & Ads make cannot double-fire it.
             $response['purchase'] = array(
-                'event'     => 'purchase',
+                'event'     => 'hayak_purchase',
+                'event_id'  => 'hy-' . $new_id,
                 'ecommerce' => array(
                     'transaction_id' => (string) $new_id,
                     'value'          => round((float) $new->get_total(), 2),
