@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Hayak Core
- * Description:       Hayak Store's own integrations in one place: Elementor order forms -> WooCommerce orders, the product-page quick order form, purchase dataLayer for the GTM pixels, the Taager webhook watchdog, and the storefront polish.
- * Version:           2.3.1
+ * Description:       Hayak Store's own integrations in one place: Elementor order forms -> WooCommerce orders, the product-page quick order form, purchase dataLayer for the GTM pixels, the Taager webhook watchdog, the no-image product guard, and the storefront polish.
+ * Version:           2.4.0
  * Author:            Hayak Store
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HAYAK_CORE_VERSION', '2.3.1' );
+define( 'HAYAK_CORE_VERSION', '2.4.0' );
 define( 'HAYAK_CORE_PATH', plugin_dir_path( __FILE__ ) );
 
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-fields.php';
@@ -25,6 +25,7 @@ require_once HAYAK_CORE_PATH . 'includes/class-hayak-order-status.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-datalayer.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-taager-watchdog.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-theme-polish.php';
+require_once HAYAK_CORE_PATH . 'includes/class-hayak-product-guard.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-admin.php';
 
 Hayak_Orders::init();
@@ -36,6 +37,7 @@ add_action( 'save_post', array( 'Hayak_Form_Spec', 'flush' ) );
 Hayak_DataLayer::init();
 Hayak_Taager_Watchdog::init();
 Hayak_Theme_Polish::init();
+Hayak_Product_Guard::init();
 
 /**
  * Product-page quick order form.
@@ -75,6 +77,7 @@ function hayak_core_activate() {
 register_deactivation_hook( __FILE__, 'hayak_core_deactivate' );
 function hayak_core_deactivate() {
 	Hayak_Taager_Watchdog::deactivate();
+	Hayak_Product_Guard::unschedule();
 	$gc = wp_next_scheduled( Hayak_Orders::GC_HOOK );
 	while ( $gc ) {
 		wp_unschedule_event( $gc, Hayak_Orders::GC_HOOK );
