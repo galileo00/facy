@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Hayak Core
- * Description:       Hayak Store's own integrations in one place: Elementor order forms -> WooCommerce orders, the product-page quick order form, purchase dataLayer for the GTM pixels, the Taager webhook watchdog, the no-image product guard, and the storefront polish.
- * Version:           2.4.0
+ * Description:       Hayak Store's own integrations in one place: Elementor order forms -> WooCommerce orders, the product-page quick order form, purchase dataLayer for the GTM pixels, the Taager webhook watchdog, the no-image product guard, home-page best sellers and offers, and the storefront polish.
+ * Version:           2.5.0
  * Author:            Hayak Store
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HAYAK_CORE_VERSION', '2.4.0' );
+define( 'HAYAK_CORE_VERSION', '2.5.0' );
 define( 'HAYAK_CORE_PATH', plugin_dir_path( __FILE__ ) );
 
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-fields.php';
@@ -26,6 +26,7 @@ require_once HAYAK_CORE_PATH . 'includes/class-hayak-datalayer.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-taager-watchdog.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-theme-polish.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-product-guard.php';
+require_once HAYAK_CORE_PATH . 'includes/class-hayak-storefront.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-admin.php';
 
 Hayak_Orders::init();
@@ -38,6 +39,7 @@ Hayak_DataLayer::init();
 Hayak_Taager_Watchdog::init();
 Hayak_Theme_Polish::init();
 Hayak_Product_Guard::init();
+Hayak_Storefront::init();
 
 /**
  * Product-page quick order form.

@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Hayak_Theme_Polish {
 
-	const VERSION      = '1.2.0';
+	const VERSION      = '1.3.0';
 	const OPTION_STAMP = 'hayak_core_polish_applied';
 
 	public static function init() {
@@ -89,7 +89,7 @@ class Hayak_Theme_Polish {
 		);
 		$widgets[21] = array(
 			'title'  => 'روابط مهمة',
-			'text'   => '<div dir="rtl" style="line-height:2.1"><a href="/shop/">تسوق الآن</a><br><a href="/return-policy/">سياسة الاستبدال والاسترجاع</a><br><a href="/privacy-policy/">سياسة الخصوصية</a><br><a href="/terms-and-conditions/">الشروط والأحكام</a></div>',
+			'text'   => '<div dir="rtl" style="line-height:2.1"><a href="/shop/">تسوق الآن</a><br><a href="/product-tag/offers/">عروض وباقات</a><br><a href="/wpautoterms/shipping-policy/">سياسة الشحن والتوصيل</a><br><a href="/wpautoterms/return-policy/">سياسة الاستبدال والاسترجاع</a><br><a href="/wpautoterms/privacy-policy/">سياسة الخصوصية</a><br><a href="/wpautoterms/terms-and-conditions/">الشروط والأحكام</a></div>',
 			'filter' => false,
 		);
 		$widgets[22] = array(
