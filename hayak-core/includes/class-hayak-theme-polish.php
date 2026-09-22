@@ -24,9 +24,9 @@ class Hayak_Theme_Polish {
 		add_action( 'woocommerce_before_shop_loop', array( __CLASS__, 'category_heading' ), 1 );
 	}
 
-	/** One <h1> per category archive: the term name, followed by its description. */
+	/** One <h1> per category or tag archive: the term name, followed by its description. */
 	public static function category_heading() {
-		if ( ! function_exists( 'is_product_category' ) || ! is_product_category() ) {
+		if ( ! function_exists( 'is_product_category' ) || ! ( is_product_category() || is_product_tag() ) ) {
 			return;
 		}
 		$term = get_queried_object();
@@ -128,7 +128,7 @@ class Hayak_Theme_Polish {
 	.absolute-footer .copyright-footer{font-size:0!important}
 	.absolute-footer .copyright-footer:after{content:' © 2026 حياك ستور - جميع الحقوق محفوظة';font-size:13px!important;color:#f4ead7!important}
 	.hayak-cat-title{direction:rtl;text-align:right;color:#1A2A4F;font-size:26px;font-weight:800;margin:6px 0 14px}
-	.tax-product_cat .term-description{direction:rtl;text-align:right;line-height:1.9;color:#333;margin-bottom:18px}
+	.tax-product_cat .term-description,.tax-product_tag .term-description{direction:rtl;text-align:right;line-height:1.9;color:#333;margin-bottom:18px}
 	.hayak-reviews-section .col-inner{height:100%}
 	.hayak-reviews-section{background:#fff!important}
 	.single-product{direction:rtl!important}
