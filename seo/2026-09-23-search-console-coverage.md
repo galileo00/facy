@@ -126,3 +126,84 @@ so they stay live.
   out-of-stock twin 39981 now points the other way.
 - `_wp_old_slug` restored for products 46151, 42957 and 40552.
 - Rank Math: product tags indexable (the offers tag), portfolio sitemap off.
+- 5 more ad pages built on the default Elementor template (no clicks) and the
+  cart, checkout and account pages set to noindex, which also takes them out
+  of the page sitemap (they already rendered noindex).
+- Product text sweep: 2,328 short descriptions replaced by a summary of the
+  current description, 767 descriptions cleaned, 2 PDF-pasted texts restored
+  to ordinary Arabic letters. No published product carries reseller notes or
+  dividers any more; the rendered pages print the description once.
+
+### Search Console
+
+- Submitted `sitemap_index.xml`; removed the stale submissions
+  (`sitemap_index.xm`, `product-sitemap.xml`, `page-sitemap.xml`,
+  `post-sitemap.xml`). The index now lists 13 product sitemaps, categories,
+  the offers tag, 7 posts and 17 real pages.
+
+## Verified live (fresh requests, unique user agents, 2026-09-23)
+
+| Request | Result |
+|---|---|
+| /product-category/home-kitchen/أجهزة-المطبخ/ | 301 → /product-category/home-kitchen/ |
+| /product-category/كاميرات/page/2/ | 301 → /product-category/electronics/ |
+| /product-category/uncategorized/page/9/ | 301 → /shop/ |
+| deleted product /product/جهاز-إزالة-الشعر-بالليزر/ | 301 → its category |
+| mangled /product/مجموعة-فتح-الباة/ | 301 → /product/مجموعة-فتح-الباب/ |
+| old slug /product/ماكينة-صنع-الأيس-كريم-بضمان-عامين/ | 301 → current product |
+| /shop-2/page/40/, /old-shop-archive/ | 301 → /shop/ |
+| /return-policy/ | 301 → /wpautoterms/return-policy/ |
+| /cart/ | 301 → /cart-2/ |
+| /shop/page/3/?product-page=5 | 301 → /shop/page/3/ |
+| /shop/?product-page=3&utm_source=tiktok | 301 → /shop/?utm_source=tiktok |
+| /product-category/electronics/page/99/ | 301 → page 1 |
+| demo post, /elements/typography/ | 410 |
+| product ?add_to_wishlist=… | 200, canonical to the clean URL |
+| /thank-you/ (landing page) | noindex, follow |
+| /4-sim/ (landing page with clicks) | index |
+| robots.txt | no wishlist rule |
+| a URL that never existed | 404 (unchanged) |
+
+## URL Inspection sample before the fixes
+
+| URL group | Inspected | Indexed | Unknown to Google | Other |
+|---|---|---|---|---|
+| In-stock products | 489 | 342 | 141 | 6 crawled, not indexed |
+| Out-of-stock products | 44 | 35 | 9 | |
+| Deleted products | 99 | 59 | 28 | 12 404 |
+| Old category URLs | 40 | 16 | 9 | 8 alternate, 7 404 |
+| Canvas and Elementor pages | 388 | 109 | 277 | 2 crawled, not indexed |
+| Demo pages, posts, portfolio | 102 | 42 | 58 | 2 noindex |
+| URLs only in Search Analytics | 136 | 24 | 97 | 10 404, 5 alternate |
+
+## What Search Console will show next
+
+- "Not found (404)" falls as Google recrawls: every URL in the export now
+  answers 301 or 410. Click **Validate fix** on this reason only.
+- "Page with redirect" and "Alternate page with proper canonical tag" rise
+  first and then shrink slowly: redirected and canonicalised URLs are the
+  correct end state, so do not validate them.
+- "Excluded by noindex" rises by the landing pages Google already knew
+  (~110): intended.
+- "Discovered" and "Crawled - currently not indexed" may rise for 2 to 6
+  weeks: the full product catalogue is in a submitted sitemap for the first
+  time, so ~140+ products Google never saw enter the queue.
+- The host's nginx page cache serves each browser type its stored copy for
+  up to about two hours; old pages age out on their own.
+
+## Left for the owner to decide
+
+- **Taager out-of-stock trashing.** The sync trashes a product that stays
+  out of stock for 10 days; the first of the current 244 go from about
+  2026-09-28. Each now leaves a redirect instead of a 404, but 200 of these
+  products have search impressions. Keeping them published as out of stock
+  (they are already hidden from listings) would keep that traffic.
+- **Near-duplicate products.** 36 exact-title groups (75 products) and
+  colour or bundle variants imported as separate products compete with each
+  other; merging them is a catalogue decision.
+- **Supplier text.** Descriptions are still the supplier's wording, shared
+  with other stores; rewriting the best sellers first would help the
+  "crawled, not indexed" group most.
+- **YITH Wishlist** is deactivated, not deleted; reactivate it only with a
+  wishlist page and AJAX buttons.
+- The legal pages under /wpautoterms/ are in English.
