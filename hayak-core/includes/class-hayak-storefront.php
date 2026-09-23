@@ -42,9 +42,19 @@ class Hayak_Storefront {
 	}
 
 	/** True for "عرض 3 قطع ..." and "X + Y" bundle titles. */
+	/**
+	 * An offer is a bundle or a multi-pack: the title opens with عرض / باقة /
+	 * باكج / بكج, joins items with "+", or sells two of the item (قطعتين, حبتين).
+	 * "N قطع" alone is not enough: a 4-piece luggage set is one product.
+	 */
 	public static function is_offer_title( $title ) {
 		$title = trim( (string) $title );
-		return '' !== $title && ( 0 === mb_strpos( $title, 'عرض' ) || false !== strpos( $title, '+' ) );
+		if ( '' === $title ) {
+			return false;
+		}
+		return (bool) preg_match( '/^[^\p{Arabic}]{0,3}(?:عرض|باقة|باكج|بكج)(?:\s|$|[:(\x{0027}"])/u', $title )
+			|| false !== strpos( $title, '+' )
+			|| (bool) preg_match( '/(?:قطعتين|حبتين)/u', $title );
 	}
 
 	public static function tag_offer( $product ) {
