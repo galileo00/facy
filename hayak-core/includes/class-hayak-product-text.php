@@ -14,7 +14,8 @@
  *
  * The invariant, enforced inside every WC_Product::save() (admin, REST, importer):
  *   - reseller-notes blocks (from their heading to the next divider or the next
- *     heading of the real text) and tatweel divider lines are removed from both
+ *     heading of the real text), runs of ad-angle lines, lines introducing
+ *     pasted generated text, and tatweel divider lines are removed from both
  *     texts (a text made only of notes keeps its lines, without the heading);
  *   - a short description that is not a summary (longer than SUMMARY_MAX_LINES
  *     lines or SUMMARY_MAX_CHARS characters) is replaced by the opening lines of
@@ -39,6 +40,9 @@ class Hayak_Product_Text {
 
 	/** Reseller-notes headings seen in the supplier text. */
 	const NOTES_HEADING = '/^(?:[أا]فكار\s+(?:ال)?محتوى|زوايا\s+(?:تسويقي[ةه]|بيعي[ةه]|(?:ال)?بيع))(?:\s.{0,60}|\s*:.*)?$/u';
+
+	/** A line that only introduces pasted, generated text ("بالطبع، إليك بعض المميزات ...:"). */
+	const PREAMBLE = '/^(?:(?:بالطبع|بالتأكيد|بكل\s+سرور|طبع[اًا]+|أكيد)[،,!\s]*)?[إا]ليك\s+(?:محتوى|وصف|نص|بعض|أهم|اهم)[^\n]{0,160}[:：]$/u';
 
 	/** Headings of the real text; a notes block with no divider ends at the first of these. */
 	const TEXT_HEADING = '/^(?:(?:ال)?مميزات|(?:ال)?مواصفات|تفاصيل|(?:ال)?محتويات|(?:كيفي[ةه]|طريق[ةه])\s+(?:ال)?استخدام|(?:ال)?خصائص)[^.،!؟]{0,30}$/u';
@@ -106,10 +110,16 @@ class Hayak_Product_Text {
 		if ( '' === trim( $text ) ) {
 			return $text;
 		}
+		$all  = preg_split( '/\R/u', $text );
+		$drop = self::angle_runs( $all );
 		$out     = array();
 		$skip    = false;
-		$changed = false;
-		foreach ( preg_split( '/\R/u', $text ) as $line ) {
+		$changed = (bool) $drop;
+		foreach ( $all as $n => $line ) {
+			if ( isset( $drop[ $n ] ) || preg_match( self::PREAMBLE, self::plain( $line ) ) ) {
+				$changed = true;
+				continue;
+			}
 			if ( self::is_divider( $line ) ) {
 				$skip    = false;
 				$changed = true;
@@ -158,6 +168,34 @@ class Hayak_Product_Text {
 		}
 		$keep = trim( implode( "\n", $keep ) );
 		return '' === $keep ? $text : $keep;
+	}
+
+	/**
+	 * Line numbers of runs of three or more ad-angle lines ("زاوية القوة: ...")
+	 * with no heading of their own; blank lines do not break a run. A single
+	 * spec line such as "زاوية الدوران: 360" is never part of one.
+	 */
+	protected static function angle_runs( array $lines ) {
+		$drop = array();
+		$run  = array();
+		foreach ( $lines as $n => $line ) {
+			$plain = self::plain( $line );
+			if ( '' === $plain ) {
+				continue;
+			}
+			if ( preg_match( '/^زاوي[ةه]\s/u', $plain ) ) {
+				$run[] = $n;
+				continue;
+			}
+			if ( count( $run ) >= 3 ) {
+				$drop += array_fill_keys( $run, true );
+			}
+			$run = array();
+		}
+		if ( count( $run ) >= 3 ) {
+			$drop += array_fill_keys( $run, true );
+		}
+		return $drop;
 	}
 
 	/** The opening lines of a description, headings skipped, as plain lines. */
@@ -227,13 +265,18 @@ class Hayak_Product_Text {
 			$wpdb->prepare(
 				"SELECT ID FROM {$wpdb->posts}
 				 WHERE post_type = 'product' AND post_status IN ('publish','draft','private','pending')
-				   AND ( CHAR_LENGTH(post_excerpt) > %d OR post_content LIKE %s OR post_excerpt LIKE %s OR post_content REGEXP %s OR post_excerpt REGEXP %s )
+				   AND ( CHAR_LENGTH(post_excerpt) > %d OR post_content LIKE %s OR post_excerpt LIKE %s OR post_content REGEXP %s OR post_excerpt REGEXP %s
+				         OR post_content LIKE %s OR post_excerpt LIKE %s OR post_content LIKE %s OR post_excerpt LIKE %s )
 				 ORDER BY ID DESC",
 				self::SUMMARY_MAX_CHARS,
 				'%' . $wpdb->esc_like( 'ـــــ' ) . '%',
 				'%' . $wpdb->esc_like( 'ـــــ' ) . '%',
 				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)',
-				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)'
+				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)',
+				'%' . $wpdb->esc_like( 'زاوية ' ) . '%',
+				'%' . $wpdb->esc_like( 'زاوية ' ) . '%',
+				'%' . $wpdb->esc_like( 'ليك ' ) . '%',
+				'%' . $wpdb->esc_like( 'ليك ' ) . '%'
 			)
 		);
 		$done = array( 'checked' => 0, 'changed' => 0 );
