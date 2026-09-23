@@ -50,10 +50,11 @@ class Hayak_URL_Recovery {
 	const SLUG_INDEX = 'hayak_product_slug_index';
 
 	/** Query parameters worth carrying through a redirect this module issues itself. */
-	const KEEP_QUERY = '/^(utm_[a-z_]+|ttclid|fbclid|gclid|gbraid|wbraid|msclkid|sccid|sc_click_id|twclid)$/i';
+	const KEEP_QUERY = '/^(utm_[a-z_]+|ttclid|fbclid|gclid|gbraid|wbraid|dclid|msclkid|sccid|sc_click_id|twclid|srsltid|gad_source|gad_campaignid|_gl)$/i';
 
 	public static function init() {
 		add_filter( 'pre_redirect_guess_404_permalink', array( __CLASS__, 'guess' ) );
+		add_filter( 'old_slug_redirect_post_id', array( __CLASS__, 'old_slug_target' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'drop_retired_params' ), 1 );
 		add_action( 'template_redirect', array( __CLASS__, 'after_canonical' ), 20 );
 		add_action( 'wp_trash_post', array( __CLASS__, 'product_removed' ), 10, 1 );
@@ -109,7 +110,7 @@ class Hayak_URL_Recovery {
 			if ( 410 !== $code && empty( $rule['t'] ) ) {
 				continue;
 			}
-			$target = 410 === $code ? '' : self::final_target( (string) $rule['t'], $map );
+			$target = 410 === $code ? '' : self::final_target( self::relative( (string) $rule['t'] ), $map );
 			if ( 410 !== $code && self::target_key( $target ) === $key ) {
 				continue; // A rule may never point at itself.
 			}
@@ -129,6 +130,25 @@ class Hayak_URL_Recovery {
 		}
 		update_option( self::OPTION_MAP, $map, false );
 		self::flush_index();
+	}
+
+	/** Home-relative form of a same-site URL, so stored rules survive a host or scheme change. */
+	public static function relative( $target ) {
+		$target = (string) $target;
+		if ( ! preg_match( '#^https?://#i', $target ) ) {
+			return '/' . ltrim( $target, '/' );
+		}
+		$home = wp_parse_url( home_url( '/' ) );
+		$url  = wp_parse_url( $target );
+		if ( empty( $url['host'] ) || empty( $home['host'] ) || strtolower( $url['host'] ) !== strtolower( $home['host'] ) ) {
+			return $target; // Another site: keep as is (wp_validate_redirect will refuse it).
+		}
+		$path  = isset( $url['path'] ) ? $url['path'] : '/';
+		$hpath = isset( $home['path'] ) ? rtrim( $home['path'], '/' ) : '';
+		if ( '' !== $hpath && 0 === strpos( $path, $hpath . '/' ) ) {
+			$path = substr( $path, strlen( $hpath ) );
+		}
+		return $path . ( isset( $url['query'] ) ? '?' . $url['query'] : '' );
 	}
 
 	protected static function target_key( $target ) {
@@ -181,7 +201,34 @@ class Hayak_URL_Recovery {
 		if ( ! $rule ) {
 			$rule = self::paged_past_end( $key );
 		}
+		if ( $rule && 301 === (int) $rule['c'] ) {
+			$map = self::map();
+			for ( $hop = 0; $hop < 5; $hop++ ) {
+				$next = self::target_key( $rule['t'] );
+				if ( $next === $key || ! isset( $map[ $next ] ) ) {
+					break;
+				}
+				$rule = $map[ $next ];
+				if ( 301 !== (int) $rule['c'] ) {
+					break;
+				}
+			}
+		}
 		return $rule;
+	}
+
+	/** Absolute URL for a rule's target, or '' when it is not a safe same-site destination. */
+	protected static function safe_target( $rule ) {
+		$url = self::absolute( $rule['t'] );
+		return ( '' !== $url && wp_validate_redirect( $url, false ) ) ? $url : '';
+	}
+
+	/** An old slug that belongs to a product no longer published must not redirect to its bare ?p= URL. */
+	public static function old_slug_target( $post_id ) {
+		if ( $post_id && 'product' === get_post_type( $post_id ) && 'publish' !== get_post_status( $post_id ) ) {
+			return 0;
+		}
+		return $post_id;
 	}
 
 	protected static function request_key() {
@@ -214,8 +261,8 @@ class Hayak_URL_Recovery {
 		if ( 410 === (int) $rule['c'] ) {
 			return false;
 		}
-		$target = self::absolute( $rule['t'] );
-		return $target ? $target : null;
+		$target = self::safe_target( $rule );
+		return '' !== $target ? $target : null;
 	}
 
 	/**
@@ -235,8 +282,8 @@ class Hayak_URL_Recovery {
 			status_header( 410 ); // The 404 template still renders, with the honest status.
 			return;
 		}
-		$target = self::absolute( $rule['t'] );
-		if ( ! $target || self::key( (string) wp_parse_url( $target, PHP_URL_PATH ) ) === $key ) {
+		$target = self::safe_target( $rule );
+		if ( '' === $target || self::key( (string) wp_parse_url( $target, PHP_URL_PATH ) ) === $key ) {
 			return;
 		}
 		$keep = array();
@@ -279,9 +326,15 @@ class Hayak_URL_Recovery {
 		if ( ! $archive ) {
 			return;
 		}
-		$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
-		$uri = remove_query_arg( 'product-page', $uri );
-		wp_safe_redirect( home_url( '/' . ltrim( (string) $uri, '/' ) ), 301, 'Hayak URL Recovery' );
+		$uri   = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		$clean = remove_query_arg( 'product-page', $uri );
+		$path  = ltrim( (string) wp_parse_url( $clean, PHP_URL_PATH ), '/' );
+		$query = (string) wp_parse_url( $clean, PHP_URL_QUERY );
+		$home  = trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+		if ( '' !== $home && ( $path === $home || 0 === strpos( $path, $home . '/' ) ) ) {
+			$path = ltrim( substr( $path, strlen( $home ) ), '/' );
+		}
+		wp_safe_redirect( home_url( '/' . $path ) . ( '' !== $query ? '?' . $query : '' ), 301, 'Hayak URL Recovery' );
 		exit;
 	}
 
@@ -304,6 +357,16 @@ class Hayak_URL_Recovery {
 				'ؤ' => 'و',
 				'ئ' => 'ي',
 				'ـ' => '',
+				'٠' => '0',
+				'١' => '1',
+				'٢' => '2',
+				'٣' => '3',
+				'٤' => '4',
+				'٥' => '5',
+				'٦' => '6',
+				'٧' => '7',
+				'٨' => '8',
+				'٩' => '9',
 			)
 		);
 		$s = preg_replace( '/[\x{064B}-\x{0652}\x{0670}]/u', '', $s );
@@ -312,9 +375,13 @@ class Hayak_URL_Recovery {
 	}
 
 	/**
-	 * normalised slug => target path, for every live product plus every retired
-	 * product path in the map (so a mangled link to a deleted product still
-	 * lands where the deleted product now points).
+	 * normalised slug => target path. Every live product points at itself, under
+	 * its current slug and under every slug it had before (_wp_old_slug), so a
+	 * mangled copy of an old link still finds it. Every product that exists but
+	 * is not published (held as a draft, trashed) maps to '' under all of its
+	 * slugs, so its own URL is never guessed onto a sibling. Retired product
+	 * paths in the map point where the map sends them, so a mangled link to a
+	 * deleted product still lands on that product's replacement.
 	 */
 	protected static function slug_index() {
 		$index = get_transient( self::SLUG_INDEX );
@@ -323,16 +390,29 @@ class Hayak_URL_Recovery {
 		}
 		global $wpdb;
 		$index = array();
-		$rows  = $wpdb->get_results( "SELECT ID, post_name FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' AND post_name <> ''" );
-		foreach ( (array) $rows as $row ) {
-			// post_name is stored percent-encoded, exactly as get_permalink() prints it.
-			$index[ self::norm( $row->post_name ) ] = 'product/' . $row->post_name . '/';
+		$rows  = $wpdb->get_results( "SELECT ID, post_name, post_status FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status NOT IN ('auto-draft', 'inherit') AND post_name <> ''" );
+		$old   = $wpdb->get_results( "SELECT p.post_name, p.post_status, m.meta_value AS old_name FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE m.meta_key = '_wp_old_slug' AND p.post_type = 'product' AND p.post_status NOT IN ('auto-draft', 'inherit') AND p.post_name <> '' AND m.meta_value <> ''" );
+		// Current slugs first, so an old slug never displaces the product that owns it now.
+		foreach ( array( (array) $rows, (array) $old ) as $pass => $list ) {
+			foreach ( $list as $row ) {
+				$status = isset( $row->post_status ) ? $row->post_status : 'publish';
+				$name   = preg_replace( '/__trashed(-\d+)?$/', '', (string) $row->post_name );
+				$norm   = self::norm( 0 === $pass ? $name : (string) $row->old_name );
+				if ( '' === $norm ) {
+					continue;
+				}
+				if ( 'publish' === $status && ( 0 === $pass || ! isset( $index[ $norm ] ) || '' === $index[ $norm ] ) ) {
+					// post_name is stored percent-encoded, exactly as get_permalink() prints it.
+					$index[ $norm ] = 'product/' . $name . '/';
+				} elseif ( ! isset( $index[ $norm ] ) ) {
+					$index[ $norm ] = '';
+				}
+			}
 		}
 		foreach ( self::map() as $path => $rule ) {
 			if ( 0 === strpos( $path, 'product/' ) && 301 === (int) $rule['c'] ) {
-				$slug = explode( '/', substr( $path, 8 ) )[0];
-				$norm = self::norm( $slug );
-				if ( '' !== $norm && ! isset( $index[ $norm ] ) ) {
+				$norm = self::norm( explode( '/', substr( $path, 8 ) )[0] );
+				if ( '' !== $norm && ( ! isset( $index[ $norm ] ) || '' === $index[ $norm ] ) ) {
 					$index[ $norm ] = $rule['t'];
 				}
 			}
@@ -349,24 +429,28 @@ class Hayak_URL_Recovery {
 		if ( 0 !== strpos( $key, 'product/' ) ) {
 			return null;
 		}
-		$slug = explode( '/', substr( $key, 8 ) )[0];
-		$want = self::norm( $slug );
-		if ( strlen( $want ) < 8 ) {
+		$want = self::norm( explode( '/', substr( $key, 8 ) )[0] );
+		if ( mb_strlen( $want, 'UTF-8' ) < 6 ) {
 			return null;
 		}
 		$index = self::slug_index();
 		if ( isset( $index[ $want ] ) ) {
-			return array( 't' => $index[ $want ], 'c' => 301 );
+			// A known product: live -> itself, not published -> no guess at all.
+			return '' === $index[ $want ] ? null : array( 't' => $index[ $want ], 'c' => 301 );
 		}
+		$tokens = self::hard_tokens( $want );
+		$chars  = self::chars( $want );
+		$len    = count( $chars );
 		$best   = PHP_INT_MAX;
 		$second = PHP_INT_MAX;
 		$hit    = null;
-		$len    = strlen( $want );
 		foreach ( $index as $norm => $target ) {
-			if ( abs( strlen( $norm ) - $len ) > 8 ) {
-				continue;
+			// A slug ten or more letters longer or shorter is at least that far away,
+			// beyond anything the rule below could accept or be blocked by.
+			if ( abs( mb_strlen( $norm, 'UTF-8' ) - $len ) > 9 || self::hard_tokens( $norm ) !== $tokens ) {
+				continue; // Numbers and Latin model names must match exactly: 2 packs is not 3.
 			}
-			$d = levenshtein( $want, $norm );
+			$d = self::char_distance( $chars, self::chars( $norm ) );
 			if ( $d < $best ) {
 				$second = $best;
 				$best   = $d;
@@ -375,13 +459,48 @@ class Hayak_URL_Recovery {
 				$second = $d;
 			}
 		}
-		// A few bytes apart (an Arabic letter is two), and clearly closer than any
-		// other product, so a near-miss between two similar products never guesses.
-		$limit = max( 4, (int) floor( $len * 0.08 ) );
-		if ( null !== $hit && $best <= $limit && $second - $best >= 4 ) {
+		// Mangled links on this store are one to three damaged letters. Accept at
+		// most three (and never more than a quarter of the slug), and only when the
+		// match is at least three times closer than any other product, so a link
+		// that sits between two similar products never guesses. A candidate that
+		// exists but is not published ('') is never a destination.
+		$limit = min( 3, max( 1, intdiv( $len, 4 ) ) );
+		if ( null !== $hit && '' !== $hit && $best <= $limit && $second >= max( 3 * $best, $best + 3 ) ) {
 			return array( 't' => $hit, 'c' => 301 );
 		}
 		return null;
+	}
+
+	/** The digit and Latin runs of a normalised slug, sorted: sizes, capacities, models. */
+	protected static function hard_tokens( $norm ) {
+		preg_match_all( '/[0-9]+|[a-z]+/', $norm, $m );
+		$t = $m[0];
+		sort( $t );
+		return implode( ' ', $t );
+	}
+
+	protected static function chars( $s ) {
+		return preg_split( '//u', $s, -1, PREG_SPLIT_NO_EMPTY );
+	}
+
+	/** Levenshtein distance in characters, not bytes (an Arabic letter is two bytes). */
+	protected static function char_distance( array $a, array $b ) {
+		$alphabet = array();
+		$x        = '';
+		$y        = '';
+		foreach ( $a as $c ) {
+			if ( ! isset( $alphabet[ $c ] ) ) {
+				$alphabet[ $c ] = chr( count( $alphabet ) + 1 );
+			}
+			$x .= $alphabet[ $c ];
+		}
+		foreach ( $b as $c ) {
+			if ( ! isset( $alphabet[ $c ] ) ) {
+				$alphabet[ $c ] = chr( min( 255, count( $alphabet ) + 1 ) );
+			}
+			$y .= $alphabet[ $c ];
+		}
+		return levenshtein( $x, $y );
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -451,7 +570,14 @@ class Hayak_URL_Recovery {
 		if ( isset( $map[ $key ] ) && 'trash' === $post->post_status ) {
 			return; // Recorded when it was trashed.
 		}
-		self::add_rules( array( $key => array( 't' => self::replacement_for( $post ), 'c' => 301, 's' => 'removed_product:' . $post->ID ) ) );
+		$target = self::replacement_for( $post );
+		$rules  = array( $key => array( 't' => $target, 'c' => 301, 's' => 'removed_product:' . $post->ID ) );
+		foreach ( (array) get_post_meta( $post->ID, '_wp_old_slug' ) as $old ) {
+			if ( '' !== (string) $old ) {
+				$rules[ 'product/' . $old ] = $rules[ $key ];
+			}
+		}
+		self::add_rules( $rules );
 	}
 
 	/** A restored product is live again; its rule is no longer needed. */
