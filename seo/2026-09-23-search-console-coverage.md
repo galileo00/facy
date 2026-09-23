@@ -86,10 +86,13 @@ so they stay live.
   real 404s and never shadows a live page.
   - A stored map of retired paths (256 rules: `seo/data/2026-09-23-redirect-map.json`)
     gives each one a 301 to its equivalent or a 410.
-  - A product that is trashed or deleted records its own rule (same SKU, then
-    same in-stock title, then its category), and rules that pointed at it are
-    re-pointed, so no chains form. The Taager sync's out-of-stock trashing now
-    leaves a redirect instead of a 404.
+  - A product that is trashed or deleted records its own rule, and rules that
+    pointed at it are re-pointed, so no chains form. The destination is the
+    same Taager product under another category path (a distinctive product
+    code held by exactly one live product), else an identical in-stock title,
+    else the single live product whose slug differs only by "-N", else its
+    category. The Taager sync's out-of-stock trashing now leaves a redirect
+    instead of a 404.
   - A mangled product link is matched to the one product at most three
     letters away (never across different numbers or Latin model names, never
     to a product that is drafted or trashed), including against every slug a
@@ -110,7 +113,9 @@ so they stay live.
 
 ### Data and settings
 
-- Redirect map loaded: deleted products, all pre-flattening category URLs
+- Redirect map loaded: deleted products (84 of 99 to a live equivalent that
+  a review confirmed against the catalogue, 15 to their category), all
+  pre-flattening category URLs
   (including /product-category/uncategorized/ and two only Google still had),
   /shop-2/, the policy aliases, /cart/ /checkout/ /my-account/ to the live
   WooCommerce pages, demo pages with impressions to their real equivalents,
@@ -148,7 +153,7 @@ so they stay live.
 | /product-category/home-kitchen/أجهزة-المطبخ/ | 301 → /product-category/home-kitchen/ |
 | /product-category/كاميرات/page/2/ | 301 → /product-category/electronics/ |
 | /product-category/uncategorized/page/9/ | 301 → /shop/ |
-| deleted product /product/جهاز-إزالة-الشعر-بالليزر/ | 301 → its category |
+| deleted product /product/جهاز-إزالة-الشعر-بالليزر/ | 301 (then to its category; the map now sends it to the live IPL laser, 13044) |
 | mangled /product/مجموعة-فتح-الباة/ | 301 → /product/مجموعة-فتح-الباب/ |
 | old slug /product/ماكينة-صنع-الأيس-كريم-بضمان-عامين/ | 301 → current product |
 | /shop-2/page/40/, /old-shop-archive/ | 301 → /shop/ |
