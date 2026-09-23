@@ -15,7 +15,7 @@
  * The invariant, enforced inside every WC_Product::save() (admin, REST, importer):
  *   - reseller-notes blocks (from their heading to the next divider or the next
  *     heading of the real text) and tatweel divider lines are removed from both
- *     texts, as long as real text remains;
+ *     texts (a text made only of notes keeps its lines, without the heading);
  *   - a short description that is not a summary (longer than SUMMARY_MAX_LINES
  *     lines or SUMMARY_MAX_CHARS characters) is replaced by the opening lines of
  *     the description, so it matches the current text. The TikTok catalogue
@@ -38,7 +38,7 @@ class Hayak_Product_Text {
 	const SUMMARY_LINES     = 4;
 
 	/** Reseller-notes headings seen in the supplier text. */
-	const NOTES_HEADING = '/^(?:[أا]فكار\s+(?:ال)?محتوى|زوايا\s+(?:تسويقي[ةه]|بيعي[ةه]|(?:ال)?بيع(?:\s+(?:ال)?منتج)?))(?:\s*:.*)?\s*$/u';
+	const NOTES_HEADING = '/^(?:[أا]فكار\s+(?:ال)?محتوى|زوايا\s+(?:تسويقي[ةه]|بيعي[ةه]|(?:ال)?بيع))(?:\s.{0,60}|\s*:.*)?$/u';
 
 	/** Headings of the real text; a notes block with no divider ends at the first of these. */
 	const TEXT_HEADING = '/^(?:(?:ال)?مميزات|(?:ال)?مواصفات|تفاصيل|(?:ال)?محتويات|(?:كيفي[ةه]|طريق[ةه])\s+(?:ال)?استخدام|(?:ال)?خصائص)[^.،!؟]{0,30}$/u';
@@ -99,7 +99,7 @@ class Hayak_Product_Text {
 	/**
 	 * Text without reseller-notes blocks and tatweel dividers. A notes block runs
 	 * from its heading to the next divider or the next heading of the real text,
-	 * wherever it sits. Unchanged if nothing else would remain.
+	 * wherever it sits. When the notes are all there is, only their headings go.
 	 */
 	public static function clean( $text ) {
 		$text = (string) $text;
@@ -146,7 +146,18 @@ class Hayak_Product_Text {
 			array_pop( $lines );
 		}
 		$result = implode( "\n", $lines );
-		return '' === self::plain( str_replace( "\n", ' ', $result ) ) ? $text : $result;
+		if ( '' !== self::plain( str_replace( "\n", ' ', $result ) ) ) {
+			return $result;
+		}
+		// Notes are all there is: keep their lines, drop only the headings and dividers.
+		$keep = array();
+		foreach ( preg_split( '/\R/u', $text ) as $line ) {
+			if ( ! self::is_divider( $line ) && ! preg_match( self::NOTES_HEADING, self::plain( $line ) ) ) {
+				$keep[] = $line;
+			}
+		}
+		$keep = trim( implode( "\n", $keep ) );
+		return '' === $keep ? $text : $keep;
 	}
 
 	/** The opening lines of a description, headings skipped, as plain lines. */
@@ -180,6 +191,7 @@ class Hayak_Product_Text {
 
 	protected static function is_divider( $line ) {
 		$p = preg_replace( '/\s+/u', '', wp_strip_all_tags( (string) $line ) );
+		$p = preg_replace( '/^[\-–•·]+(?=\x{0640})/u', '', $p );
 		return '' !== $p && (bool) preg_match( '/^(?:\x{0640}{5,}|[-_=─━•.*]{8,})$/u', $p );
 	}
 
