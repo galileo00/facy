@@ -1,0 +1,1181 @@
+{
+ "2013/08/11/welcome-to-flatsome-an-amazing-responsive-and-retina-ready-theme": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "2013/08/29/new-client-landed": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "2013/12/16/just-a-cool-blog-post-with-a-gallery-2": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "2013/12/30/just-a-cool-blog-post-with-images": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "2014/01/01/a-video-blog-post": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "2015/10/13/a-simple-blog-post": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "2015/10/13/velkommen-til-bloggen-min": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "2015/11/19/welcome-to-flatsome": {
+  "c": 410,
+  "s": "demo_post"
+ },
+ "author/toty": {
+  "c": 301,
+  "s": "old_author",
+  "t": "https://hayak.store/blog/"
+ },
+ "cart": {
+  "c": 301,
+  "s": "retired_page:655",
+  "t": "/cart-2/"
+ },
+ "category/style": {
+  "c": 410,
+  "s": "demo_term"
+ },
+ "checkout": {
+  "c": 301,
+  "s": "retired_page:656",
+  "t": "/checkout-2/"
+ },
+ "demos": {
+  "c": 410,
+  "s": "demo_page:39559"
+ },
+ "demos/business-demos": {
+  "c": 410,
+  "s": "demo_page:39560"
+ },
+ "demos/business-demos/agency": {
+  "c": 410,
+  "s": "demo_page:39558"
+ },
+ "demos/business-demos/booking": {
+  "c": 410,
+  "s": "demo_page:39556"
+ },
+ "demos/business-demos/explore": {
+  "c": 410,
+  "s": "demo_page:39532"
+ },
+ "demos/business-demos/freelancer": {
+  "c": 410,
+  "s": "demo_page:39524"
+ },
+ "demos/business-demos/lifestyle": {
+  "c": 410,
+  "s": "demo_page:39557"
+ },
+ "demos/business-demos/simple-corporate": {
+  "c": 410,
+  "s": "demo_page:39543"
+ },
+ "demos/shop-demos": {
+  "c": 410,
+  "s": "demo_page:39561"
+ },
+ "demos/shop-demos/big-sale": {
+  "c": 410,
+  "s": "demo_page:39525"
+ },
+ "demos/shop-demos/cute-shop": {
+  "c": 410,
+  "s": "demo_page:39545"
+ },
+ "demos/shop-demos/fullscreen-fashion": {
+  "c": 410,
+  "s": "demo_page:39567"
+ },
+ "demos/shop-demos/grid-style-1": {
+  "c": 410,
+  "s": "demo_page:39564"
+ },
+ "demos/shop-demos/grid-style-2": {
+  "c": 410,
+  "s": "demo_page:39577"
+ },
+ "demos/shop-demos/grid-style-3": {
+  "c": 410,
+  "s": "demo_page:39523"
+ },
+ "demos/shop-demos/mega-shop": {
+  "c": 410,
+  "s": "demo_page:39554"
+ },
+ "demos/shop-demos/parallax-shop": {
+  "c": 410,
+  "s": "demo_page:39552"
+ },
+ "demos/shop-demos/sale-countdown": {
+  "c": 410,
+  "s": "demo_page:39531"
+ },
+ "demos/shop-demos/simple-slider": {
+  "c": 410,
+  "s": "demo_page:39583"
+ },
+ "demos/shop-demos/slider-cover": {
+  "c": 410,
+  "s": "demo_page:39519"
+ },
+ "demos/shop-demos/sport-shop": {
+  "c": 410,
+  "s": "demo_page:39544"
+ },
+ "demos/shop-demos/vendor-shop": {
+  "c": 410,
+  "s": "demo_page:39530"
+ },
+ "demos/shop-demos/video-cover": {
+  "c": 410,
+  "s": "demo_page:39521"
+ },
+ "elements": {
+  "c": 410,
+  "s": "demo_page:39589"
+ },
+ "elements/accordion": {
+  "c": 410,
+  "s": "demo_page:39537"
+ },
+ "elements/banner": {
+  "c": 410,
+  "s": "demo_page:39550"
+ },
+ "elements/banner-grid": {
+  "c": 410,
+  "s": "demo_page:39563"
+ },
+ "elements/blog-posts": {
+  "c": 410,
+  "s": "demo_page:39587"
+ },
+ "elements/buttons": {
+  "c": 410,
+  "s": "demo_page:39580"
+ },
+ "elements/countdown": {
+  "c": 410,
+  "s": "demo_page:39542"
+ },
+ "elements/flip-book": {
+  "c": 410,
+  "s": "demo_page:39518"
+ },
+ "elements/forms": {
+  "c": 410,
+  "s": "demo_page:39533"
+ },
+ "elements/galleries": {
+  "c": 410,
+  "s": "demo_page:39528"
+ },
+ "elements/hotspot": {
+  "c": 410,
+  "s": "demo_page:39529"
+ },
+ "elements/icon-box": {
+  "c": 410,
+  "s": "demo_page:39574"
+ },
+ "elements/image-box": {
+  "c": 410,
+  "s": "demo_page:39551"
+ },
+ "elements/images-6": {
+  "c": 410,
+  "s": "demo_page:39584"
+ },
+ "elements/instagram-feed": {
+  "c": 410,
+  "s": "demo_page:39536"
+ },
+ "elements/lightbox": {
+  "c": 410,
+  "s": "demo_page:39565"
+ },
+ "elements/logo": {
+  "c": 410,
+  "s": "demo_page:39538"
+ },
+ "elements/map": {
+  "c": 410,
+  "s": "demo_page:39582"
+ },
+ "elements/message-box": {
+  "c": 410,
+  "s": "demo_page:39569"
+ },
+ "elements/pages": {
+  "c": 410,
+  "s": "demo_page:39540"
+ },
+ "elements/pages/about": {
+  "c": 301,
+  "s": "retired_page:1135",
+  "t": "/wpautoterms/about-us-contact-us/"
+ },
+ "elements/pages/contact": {
+  "c": 301,
+  "s": "retired_page:357",
+  "t": "/contact-us/"
+ },
+ "elements/pages/faq": {
+  "c": 410,
+  "s": "demo_page:39578"
+ },
+ "elements/pages/left-sidebar": {
+  "c": 410,
+  "s": "demo_page:39517"
+ },
+ "elements/pages/maintenance": {
+  "c": 410,
+  "s": "demo_page:39520"
+ },
+ "elements/pages/our-stores": {
+  "c": 410,
+  "s": "demo_page:39522"
+ },
+ "elements/pages/portfolio": {
+  "c": 410,
+  "s": "demo_page:39539"
+ },
+ "elements/pages/size-chart": {
+  "c": 410,
+  "s": "demo_page:39553"
+ },
+ "elements/price-table": {
+  "c": 410,
+  "s": "demo_page:39534"
+ },
+ "elements/product-categories": {
+  "c": 410,
+  "s": "demo_page:39570"
+ },
+ "elements/products": {
+  "c": 410,
+  "s": "demo_page:39571"
+ },
+ "elements/rows-columns": {
+  "c": 410,
+  "s": "demo_page:39547"
+ },
+ "elements/scroll-to": {
+  "c": 410,
+  "s": "demo_page:39541"
+ },
+ "elements/search-box": {
+  "c": 410,
+  "s": "demo_page:39535"
+ },
+ "elements/sections": {
+  "c": 410,
+  "s": "demo_page:39562"
+ },
+ "elements/sharefollow-icons": {
+  "c": 410,
+  "s": "demo_page:39572"
+ },
+ "elements/sliders": {
+  "c": 410,
+  "s": "demo_page:39586"
+ },
+ "elements/tabs": {
+  "c": 410,
+  "s": "demo_page:39588"
+ },
+ "elements/team-member": {
+  "c": 410,
+  "s": "demo_page:39573"
+ },
+ "elements/testemonials": {
+  "c": 410,
+  "s": "demo_page:39579"
+ },
+ "elements/titles-dividers": {
+  "c": 410,
+  "s": "demo_page:39575"
+ },
+ "elements/typography": {
+  "c": 410,
+  "s": "demo_page:39549"
+ },
+ "elements/video": {
+  "c": 410,
+  "s": "demo_page:39526"
+ },
+ "elements/video-button": {
+  "c": 410,
+  "s": "demo_page:39527"
+ },
+ "featured_item/another-print-package": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item/awesome-pencil-poster": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item/fl3-print-package": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item/flat-t-shirt-company": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item/flatsome-poster-print": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item/lookbook-summer": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item/magazine": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item/portfolio-typography": {
+  "c": 410,
+  "s": "demo_featured_item"
+ },
+ "featured_item_category/design": {
+  "c": 410,
+  "s": "demo_term"
+ },
+ "featured_item_category/lookbook": {
+  "c": 410,
+  "s": "demo_term"
+ },
+ "home": {
+  "c": 301,
+  "s": "retired_page:1124",
+  "t": "/"
+ },
+ "images": {
+  "c": 410,
+  "s": "demo_page:39546"
+ },
+ "images-2": {
+  "c": 410,
+  "s": "demo_page:39548"
+ },
+ "images-3": {
+  "c": 410,
+  "s": "demo_page:39555"
+ },
+ "images-4": {
+  "c": 410,
+  "s": "demo_page:39566"
+ },
+ "images-5": {
+  "c": 410,
+  "s": "demo_page:39576"
+ },
+ "my-account": {
+  "c": 301,
+  "s": "retired_page:657",
+  "t": "/my-account-2/"
+ },
+ "my-account-2/wishlist": {
+  "c": 410,
+  "s": "demo_page:39585"
+ },
+ "old-shop-archive": {
+  "c": 301,
+  "s": "retired_page:1120",
+  "t": "/shop/"
+ },
+ "privacy-policy": {
+  "c": 301,
+  "s": "policy_alias",
+  "t": "https://hayak.store/wpautoterms/privacy-policy/"
+ },
+ "product-category/car-accessories/منظفات-ومعطرات-للسياره": {
+  "c": 301,
+  "s": "old_category:191",
+  "t": "https://hayak.store/product-category/car-accessories/"
+ },
+ "product-category/electronics/misc-electronics": {
+  "c": 301,
+  "s": "old_category:163",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/electronics/mobiles-tablets-accessories": {
+  "c": 301,
+  "s": "old_category:159",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/electronics/أجهزة-منزلية-صغيرة": {
+  "c": 301,
+  "s": "old_category:228",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/electronics/كاميرات": {
+  "c": 301,
+  "s": "old_category:164",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/electronics/مكبرات-الصوت": {
+  "c": 301,
+  "s": "old_category:165",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/entertainment-games/games-entertainment": {
+  "c": 301,
+  "s": "old_category:195",
+  "t": "https://hayak.store/product-category/entertainment-games/"
+ },
+ "product-category/furniture-decor-lighting": {
+  "c": 301,
+  "s": "old_category:224",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/games-entertainment": {
+  "c": 301,
+  "s": "old_category:195",
+  "t": "https://hayak.store/product-category/entertainment-games/"
+ },
+ "product-category/hair-care": {
+  "c": 301,
+  "s": "old_category:202",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product-category/health-beauty/hair-care": {
+  "c": 301,
+  "s": "old_category:202",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product-category/health-beauty/personal-care": {
+  "c": 301,
+  "s": "old_category:215",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product-category/health-beauty/عروض-الصحة-والجمال": {
+  "c": 301,
+  "s": "old_category:214",
+  "t": "https://hayak.store/product-tag/offers/"
+ },
+ "product-category/health-beauty/منتجات-طبية": {
+  "c": 301,
+  "s": "old_category:210",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product-category/home-kitchen/furniture-decor-lighting": {
+  "c": 301,
+  "s": "old_category:224",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/home-kitchen/أجهزة-المطبخ": {
+  "c": 301,
+  "s": "old_category:233",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/home-kitchen/أدوات-المطبخ": {
+  "c": 301,
+  "s": "old_category:234",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/home-kitchen/أدوات-تخزين": {
+  "c": 301,
+  "s": "old_category:220",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/home-kitchen/الحدائق": {
+  "c": 301,
+  "s": "old_category:230",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/home-kitchen/عروض-المنزل": {
+  "c": 301,
+  "s": "old_category:217",
+  "t": "https://hayak.store/product-tag/offers/"
+ },
+ "product-category/home-kitchen/منتجات-التنظيف": {
+  "c": 301,
+  "s": "old_category:223",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/misc-electronics": {
+  "c": 301,
+  "s": "old_category:163",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/mobiles-tablets-accessories": {
+  "c": 301,
+  "s": "old_category:159",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/personal-care": {
+  "c": 301,
+  "s": "old_category:215",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product-category/sports-and-fitness": {
+  "c": 301,
+  "s": "old_category:182",
+  "t": "https://hayak.store/product-category/sports-fitness/"
+ },
+ "product-category/sports-fitness/sports-and-fitness": {
+  "c": 301,
+  "s": "old_category:182",
+  "t": "https://hayak.store/product-category/sports-fitness/"
+ },
+ "product-category/sports-fitness/منتجات-تدليك": {
+  "c": 301,
+  "s": "old_category:211",
+  "t": "https://hayak.store/product-category/sports-fitness/"
+ },
+ "product-category/uncategorized": {
+  "c": 301,
+  "s": "old_category:uncategorized",
+  "t": "/shop/"
+ },
+ "product-category/أجهزة-المطبخ": {
+  "c": 301,
+  "s": "old_category:233",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/أجهزة-منزلية-صغيرة": {
+  "c": 301,
+  "s": "old_category:228",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/أدوات-المطبخ": {
+  "c": 301,
+  "s": "old_category:234",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/أدوات-تخزين": {
+  "c": 301,
+  "s": "old_category:220",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/أدوات-كهربائية": {
+  "c": 301,
+  "s": "old_category:pre-2026",
+  "t": "https://hayak.store/product-category/tools-repairs-main/"
+ },
+ "product-category/اكسسوارات-ذكية": {
+  "c": 301,
+  "s": "old_category:gsc",
+  "t": "/product-category/electronics/"
+ },
+ "product-category/الحدائق": {
+  "c": 301,
+  "s": "old_category:230",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/العاب": {
+  "c": 301,
+  "s": "old_category:pre-2026",
+  "t": "https://hayak.store/product-category/entertainment-games/"
+ },
+ "product-category/الكترونيات-اخرى": {
+  "c": 301,
+  "s": "old_category:pre-2026",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/النظافة-الشخصية": {
+  "c": 301,
+  "s": "old_category:gsc",
+  "t": "/product-category/health-beauty/"
+ },
+ "product-category/عروض-الالكترونيات": {
+  "c": 301,
+  "s": "old_category:pre-2026",
+  "t": "https://hayak.store/product-tag/offers/"
+ },
+ "product-category/عروض-الصحة-والجمال": {
+  "c": 301,
+  "s": "old_category:214",
+  "t": "https://hayak.store/product-tag/offers/"
+ },
+ "product-category/عروض-المنزل": {
+  "c": 301,
+  "s": "old_category:217",
+  "t": "https://hayak.store/product-tag/offers/"
+ },
+ "product-category/كاميرات": {
+  "c": 301,
+  "s": "old_category:164",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/مكبرات-الصوت": {
+  "c": 301,
+  "s": "old_category:165",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product-category/منتجات-التنظيف": {
+  "c": 301,
+  "s": "old_category:223",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product-category/منتجات-تدليك": {
+  "c": 301,
+  "s": "old_category:211",
+  "t": "https://hayak.store/product-category/sports-fitness/"
+ },
+ "product-category/منتجات-طبية": {
+  "c": 301,
+  "s": "old_category:210",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product-category/منظفات-ومعطرات-للسياره": {
+  "c": 301,
+  "s": "old_category:191",
+  "t": "https://hayak.store/product-category/car-accessories/"
+ },
+ "product/أداة-لف-الورق-عنب-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51908:replacement",
+  "t": "https://hayak.store/product/%d8%a3%d8%af%d8%a7%d8%a9-%d9%84%d9%81-%d8%a7%d9%84%d9%88%d8%b1%d9%82-%d8%b9%d9%86%d8%a8/"
+ },
+ "product/أضواء-زينة-العيد-علي-شكل-نجوم-و-هلال-بضم": {
+  "c": 301,
+  "s": "deleted_product:51912:replacement",
+  "t": "https://hayak.store/product/%d8%a3%d8%b6%d9%88%d8%a7%d8%a1-%d8%b2%d9%8a%d9%86%d8%a9-%d8%a7%d9%84%d8%b9%d9%8a%d8%af-%d8%b9%d9%84%d9%8a-%d8%b4%d9%83%d9%84-%d9%86%d8%ac%d9%88%d9%85-%d9%88-%d9%87%d9%84%d8%a7%d9%84/"
+ },
+ "product/الخلاط-الالماني-والمطحنة-عصارة-كهربا": {
+  "c": 301,
+  "s": "deleted_product:51722:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/الخلاط-الالماني-والمطحنة-مفرمة-لحوم-3-2": {
+  "c": 301,
+  "s": "deleted_product:47459:replacement",
+  "t": "https://hayak.store/product/%d8%a7%d9%84%d8%ae%d9%84%d8%a7%d8%b7-%d8%a7%d9%84%d8%a7%d9%84%d9%85%d8%a7%d9%86%d9%8a-%d9%88%d8%a7%d9%84%d9%85%d8%b7%d8%ad%d9%86%d8%a9-%d9%85%d9%81%d8%b1%d9%85%d8%a9-%d9%84%d8%ad%d9%88%d9%85-3/"
+ },
+ "product/الخلاط-الالماني-والمطحنة-مفرمة-لحوم-3-4": {
+  "c": 301,
+  "s": "deleted_product:52031:replacement",
+  "t": "https://hayak.store/product/%d8%a7%d9%84%d8%ae%d9%84%d8%a7%d8%b7-%d8%a7%d9%84%d8%a7%d9%84%d9%85%d8%a7%d9%86%d9%8a-%d9%88%d8%a7%d9%84%d9%85%d8%b7%d8%ad%d9%86%d8%a9-%d9%85%d9%81%d8%b1%d9%85%d8%a9-%d9%84%d8%ad%d9%88%d9%85-3/"
+ },
+ "product/الخلاط-الالماني-والمطحنة-مفرمة-لحوم-3-5": {
+  "c": 301,
+  "s": "deleted_product:52756:replacement",
+  "t": "https://hayak.store/product/%d8%a7%d9%84%d8%ae%d9%84%d8%a7%d8%b7-%d8%a7%d9%84%d8%a7%d9%84%d9%85%d8%a7%d9%86%d9%8a-%d9%88%d8%a7%d9%84%d9%85%d8%b7%d8%ad%d9%86%d8%a9-%d9%85%d9%81%d8%b1%d9%85%d8%a9-%d9%84%d8%ad%d9%88%d9%85-3/"
+ },
+ "product/الخلاط-الالماني-والمطحنة-مفرمة-لحوم-3-6": {
+  "c": 301,
+  "s": "deleted_product:58881:replacement",
+  "t": "https://hayak.store/product/%d8%a7%d9%84%d8%ae%d9%84%d8%a7%d8%b7-%d8%a7%d9%84%d8%a7%d9%84%d9%85%d8%a7%d9%86%d9%8a-%d9%88%d8%a7%d9%84%d9%85%d8%b7%d8%ad%d9%86%d8%a9-%d9%85%d9%81%d8%b1%d9%85%d8%a9-%d9%84%d8%ad%d9%88%d9%85-3/"
+ },
+ "product/القطاعة-الكهربائية-الأكبر-حجماً-لتقط-3": {
+  "c": 301,
+  "s": "deleted_product:51148:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/باقة-أدوات-الصيانة-المتكاملة-طقم-108-قط": {
+  "c": 301,
+  "s": "deleted_product:52692:category",
+  "t": "/product-category/tools-repairs-main/"
+ },
+ "product/باقة-المدارس-طاولة-سرير-محمولة-مع-طقم-ت": {
+  "c": 301,
+  "s": "deleted_product:48529:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/باكدج-النظافة-المتكاملة-13-في-1-مكنسة-شفط": {
+  "c": 301,
+  "s": "deleted_product:48208:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/بخاخ-طفاية-الحريق-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51765:replacement",
+  "t": "https://hayak.store/product/%d8%a8%d8%ae%d8%a7%d8%ae-%d8%b7%d9%81%d8%a7%d9%8a%d8%a9-%d8%a7%d9%84%d8%ad%d8%b1%d9%8a%d9%82/"
+ },
+ "product/بديل-الرخام-للحوائط-والأرضيات-2-قطعة-ب-2": {
+  "c": 301,
+  "s": "deleted_product:58850:replacement",
+  "t": "https://hayak.store/product/%d8%a8%d8%af%d9%8a%d9%84-%d8%a7%d9%84%d8%b1%d8%ae%d8%a7%d9%85-%d9%84%d9%84%d8%ad%d9%88%d8%a7%d8%a6%d8%b7-%d9%88%d8%a7%d9%84%d8%a3%d8%b1%d8%b6%d9%8a%d8%a7%d8%aa-2-%d9%82%d8%b7%d8%b9%d8%a9-%d8%a8/"
+ },
+ "product/بديل-الزجاج-حافظ-الأسطح-ومقاوم-للأوسا": {
+  "c": 301,
+  "s": "deleted_product:51888:replacement",
+  "t": "https://hayak.store/product/%d8%ba%d8%b7%d8%a7%d8%a1-%d8%b7%d8%a7%d9%88%d9%84%d8%a9-%d9%85%d9%82%d8%a7%d9%88%d9%85-%d9%84%d9%84%d9%85%d8%a7%d8%a1-%d9%85%d9%86-%d8%a7%d9%84%d8%a8%d9%84%d8%a7%d8%b3%d8%aa%d9%8a%d9%83/"
+ },
+ "product/تابلت-10-بوصة-gt40-بكيبورد-و-ماوس-بلوتوث-ضما": {
+  "c": 301,
+  "s": "deleted_product:47453:category",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product/تابلت-air-tap-max-8-inch-ضمان-عام-بكيبورد-و-ماوس-بلوت-2": {
+  "c": 301,
+  "s": "deleted_product:58731:category",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product/تابلت-airtap-air-8-بضمان-عام-كيبورد-و-ماوس-بلوتو": {
+  "c": 301,
+  "s": "deleted_product:52142:replacement",
+  "t": "https://hayak.store/product/%d8%aa%d8%a7%d8%a8%d9%84%d8%aa-airtap-air-8-pro-%d8%a8%d8%b6%d9%85%d8%a7%d9%86-%d8%b9%d8%a7%d9%85-%d9%83%d9%8a%d8%a8%d9%88%d8%b1%d8%af-%d9%88-%d9%85%d8%a7%d9%88%d8%b3-%d8%a8%d9%84%d9%88%d8%aa/"
+ },
+ "product/تابلت-بكيبورد-و-ماوس-بلوتوث-شبيه-الا": {
+  "c": 301,
+  "s": "deleted_product:50595:category",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product/تليفون-ارضى-بانتنا-الحديث": {
+  "c": 301,
+  "s": "deleted_product:49729:replacement",
+  "t": "https://hayak.store/product/%d8%aa%d9%84%d9%8a%d9%81%d9%88%d9%86-%d8%a7%d8%b1%d8%b6%d9%89-%d8%a8%d8%a7%d9%86%d8%aa%d9%86%d8%a7-%d8%a7%d9%84%d8%ad%d8%af%d9%8a%d8%ab-%d8%b6%d9%85%d8%a7%d9%86-%d8%b9%d8%a7%d9%85/"
+ },
+ "product/ثلاجة-سيارة-للتبريد-والتدفئة-سعة-20-لتر-2": {
+  "c": 301,
+  "s": "deleted_product:50292:replacement",
+  "t": "https://hayak.store/product/%d8%ab%d9%84%d8%a7%d8%ac%d8%a9-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d9%84%d9%84%d8%aa%d8%a8%d8%b1%d9%8a%d8%af-%d9%88%d8%a7%d9%84%d8%aa%d8%af%d9%81%d8%a6%d8%a9-%d8%b3%d8%b9%d8%a9-20-%d9%84%d8%aa%d8%b1%d9%8b/"
+ },
+ "product/جهاز-إزالة-الشعر-بالليزر": {
+  "c": 301,
+  "s": "deleted_product:43161:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/جهاز-إزالة-الشعر-بالليزر-للتخلص-من-عنا": {
+  "c": 301,
+  "s": "deleted_product:47586:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/جهاز-تدليك-الجسم-الحديث-مزود-ب-6-رؤوس-ضم": {
+  "c": 301,
+  "s": "deleted_product:50150:category",
+  "t": "/product-category/health-beauty/"
+ },
+ "product/جهاز-تدليك-القدم-العميق-المتطور-هدية-م": {
+  "c": 301,
+  "s": "deleted_product:52594:replacement",
+  "t": "https://hayak.store/product/%d8%ac%d9%87%d8%a7%d8%b2-%d8%aa%d8%af%d9%84%d9%8a%d9%83-%d8%a7%d9%84%d9%82%d8%af%d9%85-%d8%a7%d9%84%d8%b9%d9%85%d9%8a%d9%82-%d8%a7%d9%84%d9%85%d8%aa%d8%b7%d9%88%d8%b1/"
+ },
+ "product/جهاز-تمرين-منزلي-صغير-قابل-للطي-مزود-ب-2": {
+  "c": 301,
+  "s": "deleted_product:51419:replacement",
+  "t": "https://hayak.store/product/%d8%ac%d9%87%d8%a7%d8%b2-%d8%aa%d9%85%d8%b1%d9%8a%d9%86-%d9%85%d9%86%d8%b2%d9%84%d9%8a-%d8%b5%d8%ba%d9%8a%d8%b1-%d9%82%d8%a7%d8%a8%d9%84-%d9%84%d9%84%d8%b7%d9%8a-%d9%85%d8%b2%d9%88%d8%af-%d8%a8%d8%a8/"
+ },
+ "product/جهاز-مساج-القدم-مع-ضمان-لمدة-عامين-مع-كر": {
+  "c": 301,
+  "s": "deleted_product:55342:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/جوال-عالى-الجودة-10-pro-xl-ضمان-عام-ضمان-عام-أض": {
+  "c": 301,
+  "s": "deleted_product:52683:category",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product/جوال-عالى-الجودة-10-pro-xl-ضمان-عام-هدية-مجاني": {
+  "c": 301,
+  "s": "deleted_product:51397:category",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product/داش-كام-4-عدسات-للسيارة-بدقة-1080p-سهلة-الترك": {
+  "c": 301,
+  "s": "deleted_product:52043:category",
+  "t": "https://hayak.store/product-category/car-accessories/"
+ },
+ "product/دولاب-تخزين-الملابس-أدوات-المطبخ-مست": {
+  "c": 301,
+  "s": "deleted_product:47500:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/زجاجة-مياه-مع-حقيبة-منظم-حبوب-دواء-بضما": {
+  "c": 301,
+  "s": "deleted_product:51911:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/زيت-الأعشاب-الهندية-لحماية-الشعر-من-تس": {
+  "c": 301,
+  "s": "deleted_product:48181:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/سرير-أطفال-كهربائي-ذكي-4-في-1-مزود-ببلوتو": {
+  "c": 301,
+  "s": "deleted_product:50212:category",
+  "t": "/product-category/home-kitchen/"
+ },
+ "product/صندوق-هدايا-أبيض": {
+  "c": 301,
+  "s": "deleted_product:51449:category",
+  "t": "/product-category/home-kitchen/"
+ },
+ "product/طقم-سكاكين-6-قطع-مع-لوح-تقطيع-بحجمين-كبي": {
+  "c": 301,
+  "s": "deleted_product:48782:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/عرض-2-جهاز-تدليك-الجسم-الحديث-مزود-ب-6-رؤو": {
+  "c": 301,
+  "s": "deleted_product:49445:replacement",
+  "t": "https://hayak.store/product/%d8%b9%d8%b1%d8%b6-3-%d8%ac%d9%87%d8%a7%d8%b2-%d8%aa%d8%af%d9%84%d9%8a%d9%83-%d8%a7%d9%84%d8%ac%d8%b3%d9%85-%d8%a7%d9%84%d8%ad%d8%af%d9%8a%d8%ab-%d9%85%d8%b2%d9%88%d8%af-%d8%a8-6-%d8%b1%d8%a4%d9%88/"
+ },
+ "product/عرض-2-دهان-الحنظل-كريم-خاص-لألم-الركبة-و": {
+  "c": 301,
+  "s": "deleted_product:51662:replacement",
+  "t": "https://hayak.store/product/%d8%b9%d8%b1%d8%b6-5-%d9%85%d9%86-%d8%af%d9%87%d8%a7%d9%86-%d8%a7%d9%84%d8%ad%d9%86%d8%b8%d9%84-%d9%83%d8%b1%d9%8a%d9%85-%d8%ae%d8%a7%d8%b5-%d9%84%d8%a3%d9%84%d9%85-%d8%a7%d9%84%d8%b1%d9%83%d8%a8/"
+ },
+ "product/عرض-2-ماكينة-حلاقة-جيب-محمولة-قابلة-لإعا": {
+  "c": 301,
+  "s": "deleted_product:46563:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-2-من-بخاخ-العناية-بالقدم-100-مل": {
+  "c": 301,
+  "s": "deleted_product:52543:replacement",
+  "t": "https://hayak.store/product/%d8%a8%d8%ae%d8%a7%d8%ae-%d8%a7%d9%84%d8%b9%d9%86%d8%a7%d9%8a%d8%a9-%d8%a8%d8%a7%d9%84%d9%82%d8%af%d9%85-100-%d9%85%d9%84/"
+ },
+ "product/عرض-2-من-بخاخ-نمو-وتغذية-الشعر": {
+  "c": 301,
+  "s": "deleted_product:52545:replacement",
+  "t": "https://hayak.store/product/%d8%a8%d8%ae%d8%a7%d8%ae-%d9%86%d9%85%d9%88-%d9%88%d8%aa%d8%ba%d8%b0%d9%8a%d8%a9-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1/"
+ },
+ "product/عرض-2-من-شامبو-صبغ-الشعر-من-dr-joon-لون-أسود": {
+  "c": 301,
+  "s": "deleted_product:51694:replacement",
+  "t": "https://hayak.store/product/%d8%b4%d8%a7%d9%85%d8%a8%d9%88-%d8%b5%d8%a8%d8%ba-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1-%d9%84%d9%88%d9%86-%d8%a3%d8%b3%d9%88%d8%af/"
+ },
+ "product/عرض-2-من-مرطب-شد-الجسم-والتفتيح-بخلاصة-ا": {
+  "c": 301,
+  "s": "deleted_product:52879:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-3-الزيت-الهندي-المركب-لشعر-صحي-وطويل": {
+  "c": 301,
+  "s": "deleted_product:50620:replacement",
+  "t": "https://hayak.store/product/%d8%b9%d8%b1%d8%b6-2-%d9%85%d9%86-%d8%a7%d9%84%d8%b2%d9%8a%d8%aa-%d8%a7%d9%84%d9%87%d9%86%d8%af%d9%8a-%d8%a7%d9%84%d9%85%d8%b1%d9%83%d8%a8-%d9%84%d8%b4%d8%b9%d8%b1-%d8%b5%d8%ad%d9%8a-%d9%88%d8%b7/"
+ },
+ "product/عرض-3-زيت-الشعر-108-عشبة-الهندي-للتطويل-وال": {
+  "c": 301,
+  "s": "deleted_product:51017:replacement",
+  "t": "https://hayak.store/product/%d8%b2%d9%8a%d8%aa-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1-108-%d8%b9%d8%b4%d8%a8%d8%a9-%d8%a7%d9%84%d9%87%d9%86%d8%af%d9%8a-%d9%84%d9%84%d8%aa%d8%b7%d9%88%d9%8a%d9%84-%d9%88%d8%a7%d9%84%d8%aa%d9%83%d8%ab/"
+ },
+ "product/عرض-3-كريم-سم-النحل-لشدّ-فوري-للعينين-مض": {
+  "c": 301,
+  "s": "deleted_product:52065:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-3-من-بخاخ-أعشاب-طبيعي-للبواسير": {
+  "c": 301,
+  "s": "deleted_product:52407:replacement",
+  "t": "https://hayak.store/product/%d8%a8%d8%ae%d8%a7%d8%ae-%d8%a3%d8%b9%d8%b4%d8%a7%d8%a8-%d8%b7%d8%a8%d9%8a%d8%b9%d9%8a-%d9%84%d9%84%d8%a8%d9%88%d8%a7%d8%b3%d9%8a%d8%b1/"
+ },
+ "product/عرض-3-من-بخاخ-العناية-بالقدم-100-مل": {
+  "c": 301,
+  "s": "deleted_product:52542:replacement",
+  "t": "https://hayak.store/product/%d8%a8%d8%ae%d8%a7%d8%ae-%d8%a7%d9%84%d8%b9%d9%86%d8%a7%d9%8a%d8%a9-%d8%a8%d8%a7%d9%84%d9%82%d8%af%d9%85-100-%d9%85%d9%84/"
+ },
+ "product/عرض-3-من-بخاخ-نمو-وتغذية-الشعر": {
+  "c": 301,
+  "s": "deleted_product:52544:replacement",
+  "t": "https://hayak.store/product/%d8%a8%d8%ae%d8%a7%d8%ae-%d9%86%d9%85%d9%88-%d9%88%d8%aa%d8%ba%d8%b0%d9%8a%d8%a9-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1/"
+ },
+ "product/عرض-3-من-سيروم-البيبتايدز-بالكولاجين-وا": {
+  "c": 301,
+  "s": "deleted_product:45230:replacement",
+  "t": "https://hayak.store/product/%d8%b3%d9%8a%d8%b1%d9%88%d9%85-%d8%a7%d9%84%d8%a8%d9%8a%d8%a8%d8%aa%d8%a7%d9%8a%d8%af%d8%b2-%d8%a8%d8%a7%d9%84%d9%83%d9%88%d9%84%d8%a7%d8%ac%d9%8a%d9%86-%d9%88%d8%a7%d9%84%d8%b1%d9%8a%d8%aa%d9%8a/"
+ },
+ "product/عرض-3-من-شامبو-صبغ-الشعر-من-dr-joon-لون-أسود": {
+  "c": 301,
+  "s": "deleted_product:51692:replacement",
+  "t": "https://hayak.store/product/%d8%b4%d8%a7%d9%85%d8%a8%d9%88-%d8%b5%d8%a8%d8%ba-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1-%d9%84%d9%88%d9%86-%d8%a3%d8%b3%d9%88%d8%af/"
+ },
+ "product/عرض-3-من-كريم-علاج-الاكزيما-و-التقرحات-20-ج": {
+  "c": 301,
+  "s": "deleted_product:51213:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-3شامبو-ثنائي-كبريتيد-السيلينيوم-لت": {
+  "c": 301,
+  "s": "deleted_product:46654:replacement",
+  "t": "https://hayak.store/product/%d8%b9%d8%b1%d8%b6-4-%d8%b4%d8%a7%d9%85%d8%a8%d9%88-%d8%ab%d9%86%d8%a7%d8%a6%d9%8a-%d9%83%d8%a8%d8%b1%d9%8a%d8%aa%d9%8a%d8%af-%d8%a7%d9%84%d8%b3%d9%8a%d9%84%d9%8a%d9%86%d9%8a%d9%88%d9%85-%d9%84%d8%aa/"
+ },
+ "product/عرض-4-زيت-الشعر-108-عشبة-الهندي-للتطويل-وال": {
+  "c": 301,
+  "s": "deleted_product:46562:replacement",
+  "t": "https://hayak.store/product/%d8%b2%d9%8a%d8%aa-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1-108-%d8%b9%d8%b4%d8%a8%d8%a9-%d8%a7%d9%84%d9%87%d9%86%d8%af%d9%8a-%d9%84%d9%84%d8%aa%d8%b7%d9%88%d9%8a%d9%84-%d9%88%d8%a7%d9%84%d8%aa%d9%83%d8%ab/"
+ },
+ "product/عرض-4-من-شامبو-صبغ-الشعر-من-dr-joon-لون-أسود": {
+  "c": 301,
+  "s": "deleted_product:51693:replacement",
+  "t": "https://hayak.store/product/%d8%b4%d8%a7%d9%85%d8%a8%d9%88-%d8%b5%d8%a8%d8%ba-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1-%d9%84%d9%88%d9%86-%d8%a3%d8%b3%d9%88%d8%af/"
+ },
+ "product/عرض-4-من-كريم-علاج-الاكزيما-و-التقرحات-20-ج": {
+  "c": 301,
+  "s": "deleted_product:51212:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-5-قطع-غطاء-حفظ-الطعام-المطاطي-بالألم": {
+  "c": 301,
+  "s": "deleted_product:48769:replacement",
+  "t": "https://hayak.store/product/%d8%ba%d8%b7%d8%a7%d8%a1-%d8%ad%d9%81%d8%b8-%d8%a7%d9%84%d8%b7%d8%b9%d8%a7%d9%85-%d8%a7%d9%84%d9%85%d8%b7%d8%a7%d8%b7%d9%8a-%d8%a8%d8%a7%d9%84%d8%a3%d9%84%d9%85%d9%86%d9%8a%d9%88%d9%85-40/"
+ },
+ "product/عرض-5-قطع-مصباح-جداري-ذكي-قابل-للشحن-بدو": {
+  "c": 301,
+  "s": "deleted_product:48773:replacement",
+  "t": "https://hayak.store/product/%d9%85%d8%b5%d8%a8%d8%a7%d8%ad-%d8%ac%d8%af%d8%a7%d8%b1%d9%8a-%d8%b0%d9%83%d9%8a-%d9%82%d8%a7%d8%a8%d9%84-%d9%84%d9%84%d8%b4%d8%ad%d9%86-%d8%a8%d8%af%d9%88%d9%86-%d9%83%d9%87%d8%b1%d8%a8%d8%a7%d8%a1/"
+ },
+ "product/عرض-5-من-دهان-الجمل-لالتهابات-المفاصل": {
+  "c": 301,
+  "s": "deleted_product:52762:replacement",
+  "t": "https://hayak.store/product/%d8%af%d9%87%d8%a7%d9%86-%d8%a7%d9%84%d8%ac%d9%85%d9%84-%d9%84%d8%a7%d9%84%d8%aa%d9%87%d8%a7%d8%a8%d8%a7%d8%aa-%d8%a7%d9%84%d9%85%d9%81%d8%a7%d8%b5%d9%84/"
+ },
+ "product/عرض-5-من-دهان-الجمل-لخشونة-الركب-وآلام-ا": {
+  "c": 301,
+  "s": "deleted_product:46629:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-البيت-الكامل-والأمان-11-في-1-جرس-إنترك": {
+  "c": 301,
+  "s": "deleted_product:47526:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/عرض-التوفير-قلاية-12-لتر-بضمان-عامين-مع-و": {
+  "c": 301,
+  "s": "deleted_product:47616:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/عرض-القطعتين-منظف-الفوم-الفورى-للمكيف": {
+  "c": 301,
+  "s": "deleted_product:47462:replacement",
+  "t": "https://hayak.store/product/%d8%b9%d8%b1%d8%b6-%d8%a7%d9%84%d8%ab%d9%84%d8%a7%d8%ab-%d9%82%d8%b7%d8%b9-%d9%85%d9%86%d8%b8%d9%81-%d8%a7%d9%84%d9%81%d9%88%d9%85-%d8%a7%d9%84%d9%81%d9%88%d8%b1%d9%89-%d9%84%d9%84%d9%85%d9%83%d9%8a/"
+ },
+ "product/عرض-جهاز-المساج-لتخفيف-الام-الكتف-والر": {
+  "c": 301,
+  "s": "deleted_product:52754:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-شامبو-صبغة-الشعر-ماسك-ترطيب-الشعر": {
+  "c": 301,
+  "s": "deleted_product:51720:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-فرشاة-حرارية-دائرية-ساخنة-مقاس-1-5-بو": {
+  "c": 301,
+  "s": "deleted_product:58804:replacement",
+  "t": "https://hayak.store/product/%d9%81%d8%b1%d8%b4%d8%a7%d8%a9-%d8%ad%d8%b1%d8%a7%d8%b1%d9%8a%d8%a9-%d8%af%d8%a7%d8%a6%d8%b1%d9%8a%d8%a9-%d8%b3%d8%a7%d8%ae%d9%86%d8%a9-%d9%85%d9%82%d8%a7%d8%b3-1-5-%d8%a8%d9%88%d8%b5%d8%a9-%d9%84/"
+ },
+ "product/عرض-مسند-البطة-المساعد-للأمهات-للاس": {
+  "c": 301,
+  "s": "deleted_product:50931:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-مكنسة-كهربائية-3-في-1-جاف-ورطب-ونفخ-ضم-3": {
+  "c": 301,
+  "s": "deleted_product:52757:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/عرض-مكنسة-للتنظيف-الجاف-و-الرطب-12-لتر-بض": {
+  "c": 301,
+  "s": "deleted_product:51154:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d9%84%d9%84%d8%aa%d9%86%d8%b8%d9%8a%d9%81-%d8%a7%d9%84%d8%ac%d8%a7%d9%81-%d9%88-%d8%a7%d9%84%d8%b1%d8%b7%d8%a8-12-%d9%84%d8%aa%d8%b1-%d8%a8%d8%b6%d9%85%d8%a7%d9%86/"
+ },
+ "product/عرض-ميكروويف-وقلاية-وصانعة-قهوة-3-في-1-ا": {
+  "c": 301,
+  "s": "deleted_product:51721:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/عرض-ميكروويف-وقلاية-وصانعة-قهوة-مجفف": {
+  "c": 301,
+  "s": "deleted_product:47826:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/عرض-٢-مشد-ضاغط-بالحرارة-للركبة-و-الساق": {
+  "c": 301,
+  "s": "deleted_product:50815:category",
+  "t": "https://hayak.store/product-category/health-beauty/"
+ },
+ "product/عرض-٢-مقشر-القدم-الحديث-القابل-لاعادة-ا": {
+  "c": 301,
+  "s": "deleted_product:50812:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%82%d8%b4%d8%b1-%d8%a7%d9%84%d9%82%d8%af%d9%85-%d8%a7%d9%84%d8%ad%d8%af%d9%8a%d8%ab-%d8%a7%d9%84%d9%82%d8%a7%d8%a8%d9%84-%d9%84%d8%a7%d8%b9%d8%a7%d8%af%d8%a9-%d8%a7%d9%84%d8%b4%d8%ad%d9%86-2/"
+ },
+ "product/علاج-الاكزيما-و-التقرحات-20-جرام-10-لاصقة": {
+  "c": 301,
+  "s": "deleted_product:51001:category",
+  "t": "/product-category/health-beauty/"
+ },
+ "product/غطاء-حفظ-الطعام-المطاطي-بالألمنيوم-36": {
+  "c": 301,
+  "s": "deleted_product:49469:replacement",
+  "t": "https://hayak.store/product/%d8%ba%d8%b7%d8%a7%d8%a1-%d8%ad%d9%81%d8%b8-%d8%a7%d9%84%d8%b7%d8%b9%d8%a7%d9%85-%d8%a7%d9%84%d9%85%d8%b7%d8%a7%d8%b7%d9%8a-%d8%a8%d8%a7%d9%84%d8%a3%d9%84%d9%85%d9%86%d9%8a%d9%88%d9%85-40/"
+ },
+ "product/غطاء-طاولة-مقاوم-للماء-من-البلاستيك-2": {
+  "c": 301,
+  "s": "deleted_product:45759:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/فرشاة-تصفيف-الشعر-4-في-1-تجفيف-وتنعيم-مع": {
+  "c": 301,
+  "s": "deleted_product:50211:replacement",
+  "t": "https://hayak.store/product/%d9%81%d8%b1%d8%b4%d8%a7%d8%a9-%d8%aa%d8%b5%d9%81%d9%8a%d9%81-%d8%a7%d9%84%d8%b4%d8%b9%d8%b1-4-%d9%81%d9%8a-1-%d8%aa%d8%ac%d9%81%d9%8a%d9%81-%d9%88%d8%aa%d9%86%d8%b9%d9%8a%d9%85-%d9%85%d8%b9-2/"
+ },
+ "product/فرشاة-طلاء-دوارة-لإصلاح-الحوائط-بضمان": {
+  "c": 301,
+  "s": "deleted_product:51910:replacement",
+  "t": "https://hayak.store/product/%d9%81%d8%b1%d8%b4%d8%a7%d8%a9-%d8%b7%d9%84%d8%a7%d8%a1-%d8%af%d9%88%d8%a7%d8%b1%d8%a9-%d9%84%d8%a5%d8%b5%d9%84%d8%a7%d8%ad-%d8%a7%d9%84%d8%ad%d9%88%d8%a7%d8%a6%d8%b7/"
+ },
+ "product/قطاعة-مندولين-الآمنة-الذكية-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51897:replacement",
+  "t": "https://hayak.store/product/%d9%82%d8%b7%d8%a7%d8%b9%d8%a9-%d9%85%d9%86%d8%af%d9%88%d9%84%d9%8a%d9%86-%d8%a7%d9%84%d8%a2%d9%85%d9%86%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9/"
+ },
+ "product/قفل-باب-التلاجة-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51905:replacement",
+  "t": "https://hayak.store/product/%d9%82%d9%81%d9%84-%d8%a8%d8%a7%d8%a8-%d8%a7%d9%84%d8%aa%d9%84%d8%a7%d8%ac%d8%a9/"
+ },
+ "product/قماش-تنظيف-الصحون-بديل-السلك-20-قطعة": {
+  "c": 301,
+  "s": "deleted_product:48420:replacement",
+  "t": "https://hayak.store/product/%d9%82%d9%85%d8%a7%d8%b4-%d8%aa%d9%86%d8%b8%d9%8a%d9%81-%d8%a7%d9%84%d8%b5%d8%ad%d9%88%d9%86-%d8%a8%d8%af%d9%8a%d9%84-%d8%a7%d9%84%d8%b3%d9%84%d9%83-11-%d9%82%d8%b7%d8%b9%d8%a9/"
+ },
+ "product/ماكينة-تشذيب-شعر-الأنف-الكهربائية،-صغ": {
+  "c": 301,
+  "s": "deleted_product:50306:category",
+  "t": "/product-category/health-beauty/"
+ },
+ "product/ماكينة-خياطة-صغيرة-محمولة-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51766:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/ماكينة-صنع-الأيس-كريم-الأحدث-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:47445:replacement",
+  "t": "https://hayak.store/product/%d9%85%d8%a7%d9%83%d9%8a%d9%86%d8%a9-%d8%b5%d9%86%d8%b9-%d8%a7%d9%84%d8%a7%d9%8a%d8%b3-%d9%83%d8%b1%d9%8a%d9%85/"
+ },
+ "product/مبشرة-الطبل-اللهلوبة-3-في-1-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51907:replacement",
+  "t": "https://hayak.store/product/%d9%85%d8%a8%d8%b4%d8%b1%d8%a9-%d8%a7%d9%84%d8%b7%d8%a8%d9%84-%d8%a7%d9%84%d9%84%d9%87%d9%84%d9%88%d8%a8%d8%a9-3-%d9%81%d9%8a-1/"
+ },
+ "product/مجموعة-ألعاب-الأطفال-2-في-1-لعبة-الرماي": {
+  "c": 301,
+  "s": "deleted_product:46663:category",
+  "t": "https://hayak.store/product-category/entertainment-games/"
+ },
+ "product/مجموعة-البر-والطلعات-طاولة-مع-2-كرسي": {
+  "c": 301,
+  "s": "deleted_product:47547:replacement",
+  "t": "https://hayak.store/product/%d9%85%d8%ac%d9%85%d9%88%d8%b9%d8%a9-%d8%a7%d9%84%d8%a8%d8%b1-%d9%88%d8%a7%d9%84%d8%b7%d9%84%d8%b9%d8%a7%d8%aa-%d8%b7%d8%a7%d9%88%d9%84%d8%a9-%d9%85%d8%b9-2-%d9%83%d8%b1%d8%a7%d8%b3%d9%8a/"
+ },
+ "product/مصباح-led-قابل-لإعادة-الشحن-6-أوضاع-يعمل-با": {
+  "c": 301,
+  "s": "deleted_product:48866:category",
+  "t": "https://hayak.store/product-category/electronics/"
+ },
+ "product/مفرمة-اللحوم-3-لتر-بضمان-عامين": {
+  "c": 301,
+  "s": "deleted_product:46631:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%81%d8%b1%d9%85%d8%a9-%d8%a7%d9%84%d9%84%d8%ad%d9%88%d9%85-3-%d9%84%d8%aa%d8%b1-braon-%d8%a8%d8%b6%d9%85%d8%a7%d9%86-%d8%b9%d8%a7%d9%85%d9%8a%d9%86/"
+ },
+ "product/مكنسة-جاف-و-رطب-ونفخ-من-دينكس-بضمان-عام-2": {
+  "c": 301,
+  "s": "deleted_product:50184:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%ac%d8%a7%d9%81-%d9%88-%d8%b1%d8%b7%d8%a8-10-%d9%84%d8%aa%d8%b1-1500-%d9%88%d8%a7%d8%b7-%d9%85%d9%86-%d8%af%d9%8a%d9%86%d9%83%d8%b3-%d8%a8%d8%b6%d9%85%d8%a7%d9%86/"
+ },
+ "product/مكنسة-جاف-و-رطب-ونفخ-من-دينكس-بضمان-عام-3": {
+  "c": 301,
+  "s": "deleted_product:50191:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%ac%d8%a7%d9%81-%d9%88-%d8%b1%d8%b7%d8%a8-10-%d9%84%d8%aa%d8%b1-1500-%d9%88%d8%a7%d8%b7-%d9%85%d9%86-%d8%af%d9%8a%d9%86%d9%83%d8%b3-%d8%a8%d8%b6%d9%85%d8%a7%d9%86/"
+ },
+ "product/مكنسة-جاف-و-رطب-ونفخ-من-دينكس-بضمان-عام-4": {
+  "c": 301,
+  "s": "deleted_product:50192:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%ac%d8%a7%d9%81-%d9%88-%d8%b1%d8%b7%d8%a8-10-%d9%84%d8%aa%d8%b1-1500-%d9%88%d8%a7%d8%b7-%d9%85%d9%86-%d8%af%d9%8a%d9%86%d9%83%d8%b3-%d8%a8%d8%b6%d9%85%d8%a7%d9%86/"
+ },
+ "product/مكنسة-جاف-و-رطب-ونفخ-من-دينكس-بضمان-عامي": {
+  "c": 301,
+  "s": "deleted_product:55278:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "product/مكيف-مقعد-السيارة-2": {
+  "c": 301,
+  "s": "deleted_product:50225:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%83%d9%8a%d9%81-%d9%85%d9%82%d8%b9%d8%af-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9/"
+ },
+ "product/ممسحة-دوارة-ذاتية-العصر-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51909:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%85%d8%b3%d8%ad%d8%a9-%d8%af%d9%88%d8%a7%d8%b1%d8%a9-%d8%b0%d8%a7%d8%aa%d9%8a%d8%a9-%d8%a7%d9%84%d8%b9%d8%b5%d8%b1/"
+ },
+ "product/مناديل-مزيل-طلاء-الأظافر-بخلاصة-زيوت-ط-2": {
+  "c": 301,
+  "s": "deleted_product:51476:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%86%d8%a7%d8%af%d9%8a%d9%84-%d9%85%d8%b2%d9%8a%d9%84-%d8%b7%d9%84%d8%a7%d8%a1-%d8%a7%d9%84%d8%a3%d8%b8%d8%a7%d9%81%d8%b1-%d8%a8%d8%ae%d9%84%d8%a7%d8%b5%d8%a9-%d8%b2%d9%8a%d9%88%d8%aa-%d8%b7/"
+ },
+ "product/منشر-غسيل-3-طبقات-بعجلات-قابل-للطي-من-ال": {
+  "c": 301,
+  "s": "deleted_product:48421:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%86%d8%b4%d8%b1-%d8%ba%d8%b3%d9%8a%d9%84-3-%d8%b7%d8%a8%d9%82%d8%a7%d8%aa-%d8%a8%d8%b9%d8%ac%d9%84%d8%a7%d8%aa-%d9%82%d8%a7%d8%a8%d9%84-%d9%84%d9%84%d8%b7%d9%8a-%d9%85%d9%86-%d8%a7%d9%84-2/"
+ },
+ "product/منظف-الفوم-السحري-بضمان-عام": {
+  "c": 301,
+  "s": "deleted_product:51674:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%86%d8%b8%d9%81-%d8%a7%d9%84%d9%81%d9%88%d9%85-%d8%a7%d9%84%d8%b3%d8%ad%d8%b1%d9%8a/"
+ },
+ "product/منفاخ-هواء-لاسلكي-قوي-550-واط-ببطارية-21-فول": {
+  "c": 301,
+  "s": "deleted_product:52017:replacement",
+  "t": "https://hayak.store/product/%d9%85%d9%86%d9%81%d8%a7%d8%ae-%d9%87%d9%88%d8%a7%d8%a1-%d9%84%d8%a7%d8%b3%d9%84%d9%83%d9%8a-%d9%82%d9%88%d9%8a-550-%d9%88%d8%a7%d8%b7-%d8%a8%d8%a8%d8%b7%d8%a7%d8%b1%d9%8a%d8%a9-21-%d9%81%d9%88-2/"
+ },
+ "product/ميكروويف-وقلاية-وصانعه-قهوة-من-اولمبي": {
+  "c": 301,
+  "s": "deleted_product:51723:category",
+  "t": "https://hayak.store/product-category/home-kitchen/"
+ },
+ "return-policy": {
+  "c": 301,
+  "s": "policy_alias",
+  "t": "https://hayak.store/wpautoterms/return-policy/"
+ },
+ "sample-page": {
+  "c": 410,
+  "s": "demo_page:2"
+ },
+ "shipping-policy": {
+  "c": 301,
+  "s": "policy_alias",
+  "t": "https://hayak.store/wpautoterms/shipping-policy/"
+ },
+ "shop-2": {
+  "c": 301,
+  "s": "old_page:shop-2",
+  "t": "https://hayak.store/shop/"
+ },
+ "tag/brooklyn": {
+  "c": 410,
+  "s": "demo_term"
+ },
+ "tag/fashion": {
+  "c": 410,
+  "s": "demo_term"
+ },
+ "tag/style-2": {
+  "c": 410,
+  "s": "demo_term"
+ },
+ "tag/women-3": {
+  "c": 410,
+  "s": "demo_term"
+ },
+ "terms-and-conditions": {
+  "c": 301,
+  "s": "policy_alias",
+  "t": "https://hayak.store/wpautoterms/terms-and-conditions/"
+ },
+ "test": {
+  "c": 410,
+  "s": "demo_page:39516"
+ }
+}
