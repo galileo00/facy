@@ -198,7 +198,7 @@ class Hayak_Product_Text {
 	/** A line as the reader sees it: no tags, bullets or emphasis marks. */
 	protected static function plain( $line ) {
 		$p = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $line ) ) );
-		return trim( preg_replace( '/^[\-–•*·▪►✔✅🔹🔸]+\s*|\*+/u', '', $p ) );
+		return trim( preg_replace( '/^(?:[\-–•*·▪►✔✅🔹🔸]+\s*)+|\*+/u', '', $p ) );
 	}
 
 	/** Non-empty trimmed lines, tags removed. */
