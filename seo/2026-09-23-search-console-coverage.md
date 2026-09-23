@@ -198,11 +198,18 @@ so they stay live.
 
 ## Left for the owner to decide
 
-- **Taager out-of-stock trashing.** The sync trashes a product that stays
-  out of stock for 10 days; the first of the current 244 go from about
-  2026-09-28. Each now leaves a redirect instead of a 404, but 200 of these
-  products have search impressions. Keeping them published as out of stock
-  (they are already hidden from listings) would keep that traffic.
+- **Taager out-of-stock trashing stays on (owner's decision).** Products that
+  stay out of stock for 10 days are removed so the catalogue does not grow
+  without end. Each removal is handled for search: the product leaves the
+  sitemap on the next request, its URL (and every old slug) answers 301 to the
+  same product elsewhere in the catalogue when one exists, otherwise to its
+  category, rules that pointed at it are re-pointed, and restoring it from the
+  trash removes its rule. Projected on the 244 out-of-stock products of
+  2026-09-23: 40 land on an equivalent live product (28 same Taager code, 7
+  re-imported slug, 5 same title) and 204 on their category, which is the
+  honest destination for an item that is really gone. Matching on SKU
+  prefixes was tested and rejected: it sends a pressure cooker to a
+  microwave and an air cooler to a vacuum.
 - **Near-duplicate products.** 36 exact-title groups (75 products) and
   colour or bundle variants imported as separate products compete with each
   other; merging them is a catalogue decision.
