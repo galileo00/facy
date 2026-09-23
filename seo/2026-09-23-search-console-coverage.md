@@ -173,7 +173,7 @@ so they stay live.
 | Deleted products | 99 | 59 | 28 | 12 404 |
 | Old category URLs | 40 | 16 | 9 | 8 alternate, 7 404 |
 | Canvas and Elementor pages | 388 | 109 | 277 | 2 crawled, not indexed |
-| Demo pages, posts, portfolio | 102 | 42 | 58 | 2 noindex |
+| Other pages, posts, portfolio items (mostly demo) | 103 | 42 | 58 | 2 noindex, 1 crawled, not indexed |
 | URLs only in Search Analytics | 136 | 24 | 97 | 10 404, 5 alternate |
 
 ## What Search Console will show next
