@@ -5,26 +5,32 @@
  * Why: Search Console's "Not found (404)" list on this store is made of URLs
  * that used to work or that people still follow, none of which should end on
  * a 404 page:
- *   1. products that were deleted (catalogue clean-ups, the Taager sync),
+ *   1. products that were deleted or trashed (catalogue clean-ups, the Taager
+ *      sync, which trashes products that stay out of stock or leave the
+ *      supplier's catalogue),
  *   2. category URLs from before the category tree was flattened, and the old
  *      /shop-2/ page,
  *   3. product links shared elsewhere with one or two Arabic letters mangled
  *      ("شظيه" for "شبيه", "بالطاقإ" for "بالطاقة"),
  *   4. archive page numbers past the end after the catalogue shrank.
  * WordPress only redirects a URL whose post still exists under an old slug,
- * so every one of these fell through to a 404.
+ * so every one of these fell through to a 404, or to WordPress's own guess,
+ * which picks any product whose slug merely starts the same way.
  *
- * The module acts only on a request WordPress has already decided is a 404:
- * it runs after wp_old_slug_redirect and redirect_canonical, so it can never
- * shadow a live page.
+ * The module plugs into that guess (pre_redirect_guess_404_permalink), so there
+ * is one redirect authority and it only ever sees requests WordPress has already
+ * decided are 404s, after wp_old_slug_redirect: it can never shadow a live page.
  *   - A stored map of retired paths gives each one its destination (301), or
  *     410 when something is gone with no sensible replacement.
- *   - A published product that gets deleted adds its own entry automatically:
- *     to an equivalent live product when one exists, otherwise to its category.
+ *   - A published product that is trashed or deleted adds its own entry: to an
+ *     equivalent live product when one exists, otherwise to its category. Rules
+ *     that pointed at it are moved to the same destination, so no chains form.
  *   - /product/<slug>/ that matches no product but is a letter or two away from
  *     exactly one live product is sent to that product.
  *   - /page/N/ past the end of a live archive goes to the archive's first page.
- * Ad tracking parameters (utm_*, ttclid, fbclid, gclid...) survive the hop.
+ *   - Anything else falls through to WordPress's own guess, then to the 404.
+ * The query string, including ad attribution (utm_*, ttclid, fbclid...), is
+ * carried by redirect_canonical.
  *
  * It also retires ?product-page=N on the shop, product archives and the front
  * page. That parameter came from a [products paginate="true"] block that sat on
@@ -43,15 +49,16 @@ class Hayak_URL_Recovery {
 	const OPTION_MAP = 'hayak_redirect_map';
 	const SLUG_INDEX = 'hayak_product_slug_index';
 
-	/** Query parameters worth carrying through a redirect: ad attribution only. */
+	/** Query parameters worth carrying through a redirect this module issues itself. */
 	const KEEP_QUERY = '/^(utm_[a-z_]+|ttclid|fbclid|gclid|gbraid|wbraid|msclkid|sccid|sc_click_id|twclid)$/i';
 
 	public static function init() {
+		add_filter( 'pre_redirect_guess_404_permalink', array( __CLASS__, 'guess' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'drop_retired_params' ), 1 );
-		add_action( 'template_redirect', array( __CLASS__, 'handle_404' ), 20 );
-		add_action( 'before_delete_post', array( __CLASS__, 'product_deleted' ), 10, 2 );
-		// With trash enabled a product is trashed first, and its URL dies right then.
-		add_action( 'wp_trash_post', array( __CLASS__, 'product_deleted' ), 10, 1 );
+		add_action( 'template_redirect', array( __CLASS__, 'after_canonical' ), 20 );
+		add_action( 'wp_trash_post', array( __CLASS__, 'product_removed' ), 10, 1 );
+		add_action( 'before_delete_post', array( __CLASS__, 'product_removed' ), 10, 1 );
+		add_action( 'untrashed_post', array( __CLASS__, 'product_restored' ), 10, 1 );
 		add_action( 'transition_post_status', array( __CLASS__, 'status_changed' ), 10, 3 );
 		add_action( 'post_updated', array( __CLASS__, 'post_updated' ), 10, 3 );
 	}
@@ -71,9 +78,19 @@ class Hayak_URL_Recovery {
 		return mb_strtolower( $path, 'UTF-8' );
 	}
 
+	/** The stored map, keyed by key(); keys written any other way are normalised on read. */
 	public static function map() {
 		$map = get_option( self::OPTION_MAP, array() );
-		return is_array( $map ) ? $map : array();
+		if ( ! is_array( $map ) ) {
+			return array();
+		}
+		$clean = array();
+		foreach ( $map as $path => $rule ) {
+			if ( is_array( $rule ) && isset( $rule['c'] ) ) {
+				$clean[ self::key( $path ) ] = $rule;
+			}
+		}
+		return $clean;
 	}
 
 	/**
@@ -92,15 +109,52 @@ class Hayak_URL_Recovery {
 			if ( 410 !== $code && empty( $rule['t'] ) ) {
 				continue;
 			}
+			$target = 410 === $code ? '' : self::final_target( (string) $rule['t'], $map );
+			if ( 410 !== $code && self::target_key( $target ) === $key ) {
+				continue; // A rule may never point at itself.
+			}
 			$map[ $key ] = array(
-				't' => 410 === $code ? '' : (string) $rule['t'],
+				't' => $target,
 				'c' => 410 === $code ? 410 : 301,
 				's' => isset( $rule['s'] ) ? (string) $rule['s'] : 'manual',
 				'd' => gmdate( 'Y-m-d' ),
 			);
+			// Whatever pointed at the retired path now points where it points.
+			foreach ( $map as $other => $r ) {
+				if ( $other !== $key && 301 === (int) $r['c'] && self::target_key( $r['t'] ) === $key ) {
+					$map[ $other ]['t'] = $target;
+					$map[ $other ]['c'] = 410 === $code ? 410 : 301;
+				}
+			}
 		}
 		update_option( self::OPTION_MAP, $map, false );
 		self::flush_index();
+	}
+
+	protected static function target_key( $target ) {
+		return self::key( (string) wp_parse_url( self::absolute( $target ), PHP_URL_PATH ) );
+	}
+
+	/** Follow a target through the map so a new rule never starts a chain. */
+	protected static function final_target( $target, array $map ) {
+		for ( $hop = 0; $hop < 5; $hop++ ) {
+			$k = self::target_key( $target );
+			if ( ! isset( $map[ $k ] ) || 301 !== (int) $map[ $k ]['c'] ) {
+				break;
+			}
+			$target = $map[ $k ]['t'];
+		}
+		return $target;
+	}
+
+	public static function remove_rule( $path ) {
+		$map = self::map();
+		$key = self::key( $path );
+		if ( isset( $map[ $key ] ) ) {
+			unset( $map[ $key ] );
+			update_option( self::OPTION_MAP, $map, false );
+			self::flush_index();
+		}
 	}
 
 	/** Exact path, then the same path without a trailing /page/N. */
@@ -115,40 +169,11 @@ class Hayak_URL_Recovery {
 		return null;
 	}
 
-	/* ------------------------------------------------------------------ *
-	 * Retired query parameters
-	 * ------------------------------------------------------------------ */
-
-	public static function drop_retired_params() {
-		if ( ! isset( $_GET['product-page'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			return;
-		}
-		$archive = ( function_exists( 'is_shop' ) && is_shop() )
-			|| ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
-			|| is_front_page();
-		if ( ! $archive ) {
-			return;
-		}
-		$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
-		$uri = remove_query_arg( 'product-page', $uri );
-		wp_safe_redirect( home_url( '/' . ltrim( (string) $uri, '/' ) ), 301, 'Hayak URL Recovery' );
-		exit;
-	}
-
-	/* ------------------------------------------------------------------ *
-	 * The 404 handler
-	 * ------------------------------------------------------------------ */
-
-	public static function handle_404() {
-		if ( ! is_404() ) {
-			return;
-		}
-		$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-		$key = self::key( (string) wp_parse_url( $uri, PHP_URL_PATH ) );
+	/** Destination for a 404 path, or null. */
+	public static function resolve( $key ) {
 		if ( '' === $key ) {
-			return;
+			return null;
 		}
-
 		$rule = self::lookup( $key );
 		if ( ! $rule ) {
 			$rule = self::fuzzy_product( $key );
@@ -156,16 +181,60 @@ class Hayak_URL_Recovery {
 		if ( ! $rule ) {
 			$rule = self::paged_past_end( $key );
 		}
+		return $rule;
+	}
+
+	protected static function request_key() {
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		return self::key( (string) wp_parse_url( $uri, PHP_URL_PATH ) );
+	}
+
+	protected static function is_read_request() {
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( (string) $_SERVER['REQUEST_METHOD'] ) : 'GET';
+		return in_array( $method, array( 'GET', 'HEAD' ), true );
+	}
+
+	/* ------------------------------------------------------------------ *
+	 * The 404 handling
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * pre_redirect_guess_404_permalink: runs inside redirect_canonical for GET/HEAD
+	 * 404s. A URL answers with that redirect (301, query string kept by core);
+	 * false stops core guessing (410 rules); null lets core guess as usual.
+	 */
+	public static function guess( $pre ) {
+		if ( null !== $pre ) {
+			return $pre;
+		}
+		$rule = self::resolve( self::request_key() );
+		if ( ! $rule ) {
+			return null;
+		}
+		if ( 410 === (int) $rule['c'] ) {
+			return false;
+		}
+		$target = self::absolute( $rule['t'] );
+		return $target ? $target : null;
+	}
+
+	/**
+	 * template_redirect after redirect_canonical: give 410 rules their status, and
+	 * redirect ourselves only if redirect_canonical did not (unhooked elsewhere).
+	 */
+	public static function after_canonical() {
+		if ( ! is_404() || ! self::is_read_request() ) {
+			return;
+		}
+		$key  = self::request_key();
+		$rule = self::resolve( $key );
 		if ( ! $rule ) {
 			return;
 		}
-
 		if ( 410 === (int) $rule['c'] ) {
-			// Gone for good: the 404 template still renders, with the honest status.
-			status_header( 410 );
+			status_header( 410 ); // The 404 template still renders, with the honest status.
 			return;
 		}
-
 		$target = self::absolute( $rule['t'] );
 		if ( ! $target || self::key( (string) wp_parse_url( $target, PHP_URL_PATH ) ) === $key ) {
 			return;
@@ -192,6 +261,28 @@ class Hayak_URL_Recovery {
 			return $target;
 		}
 		return home_url( '/' . ltrim( $target, '/' ) );
+	}
+
+	/* ------------------------------------------------------------------ *
+	 * Retired query parameters
+	 * ------------------------------------------------------------------ */
+
+	public static function drop_retired_params() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		if ( ! isset( $_GET['product-page'] ) || isset( $_GET['add-to-cart'] ) || ! self::is_read_request() ) {
+			return;
+		}
+		// phpcs:enable
+		$archive = ( function_exists( 'is_shop' ) && is_shop() )
+			|| ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
+			|| is_front_page();
+		if ( ! $archive ) {
+			return;
+		}
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		$uri = remove_query_arg( 'product-page', $uri );
+		wp_safe_redirect( home_url( '/' . ltrim( (string) $uri, '/' ) ), 301, 'Hayak URL Recovery' );
+		exit;
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -333,18 +424,43 @@ class Hayak_URL_Recovery {
 	 * Keeping the map current
 	 * ------------------------------------------------------------------ */
 
-	/** A published product being deleted or trashed leaves a destination behind. */
-	public static function product_deleted( $post_id, $post = null ) {
-		$post = $post ? $post : get_post( $post_id );
-		if ( ! $post || 'product' !== $post->post_type || 'publish' !== $post->post_status ) {
+	/**
+	 * A product leaving the shop leaves a destination behind. Called on
+	 * wp_trash_post (still published, original slug) and before_delete_post
+	 * (published when force-deleted; 'trash' when the trash is emptied, in which
+	 * case the original slug is in _wp_desired_post_slug).
+	 */
+	public static function product_removed( $post_id ) {
+		$post = get_post( $post_id );
+		if ( ! $post || 'product' !== $post->post_type ) {
 			return;
 		}
-		$path = self::key( (string) wp_parse_url( get_permalink( $post ), PHP_URL_PATH ) );
-		if ( '' === $path ) {
+		if ( 'publish' === $post->post_status ) {
+			$path = (string) wp_parse_url( get_permalink( $post ), PHP_URL_PATH );
+		} elseif ( 'trash' === $post->post_status && 'publish' === get_post_meta( $post->ID, '_wp_trash_meta_status', true ) ) {
+			$slug = (string) get_post_meta( $post->ID, '_wp_desired_post_slug', true );
+			$path = '' !== $slug ? 'product/' . $slug . '/' : '';
+		} else {
 			return;
 		}
-		$target = self::replacement_for( $post );
-		self::add_rules( array( $path => array( 't' => $target, 'c' => 301, 's' => 'deleted_product:' . $post->ID ) ) );
+		$key = self::key( $path );
+		if ( '' === $key || 0 !== strpos( $key, 'product/' ) ) {
+			return;
+		}
+		$map = self::map();
+		if ( isset( $map[ $key ] ) && 'trash' === $post->post_status ) {
+			return; // Recorded when it was trashed.
+		}
+		self::add_rules( array( $key => array( 't' => self::replacement_for( $post ), 'c' => 301, 's' => 'removed_product:' . $post->ID ) ) );
+	}
+
+	/** A restored product is live again; its rule is no longer needed. */
+	public static function product_restored( $post_id ) {
+		$post = get_post( $post_id );
+		if ( $post && 'product' === $post->post_type ) {
+			$slug = (string) get_post_meta( $post->ID, '_wp_desired_post_slug', true );
+			self::remove_rule( 'product/' . ( '' !== $slug ? $slug : $post->post_name ) );
+		}
 	}
 
 	/** An equivalent live product, else the product's category, else the shop. */
