@@ -589,19 +589,33 @@ class Hayak_URL_Recovery {
 		}
 	}
 
-	/** An equivalent live product, else the product's category, else the shop. */
+	/**
+	 * Where a removed product's visitors should land, most specific first:
+	 *   1. The same Taager product under another category path. Taager SKUs are
+	 *      "SA" + a six-digit category path + a product code, and Taager re-codes
+	 *      the path (SA040507 00ECZ00 and SA040107 00ECZ00 are one cream). Only a
+	 *      distinctive code (six or more characters, with a letter) held by exactly
+	 *      one live product counts: generic codes such as "0099" are shared by
+	 *      dozens of unrelated products. A code that merely starts the same way is
+	 *      never used: a blender's SKU can extend a fridge lock's.
+	 *   2. A live, in-stock product with exactly the same title.
+	 *   3. The one live product whose slug differs only by WordPress's "-N"
+	 *      suffix (a re-import of the same item), when there is exactly one.
+	 *   4. The product's category, else the shop.
+	 */
 	public static function replacement_for( $post ) {
 		global $wpdb;
 		$sku = (string) get_post_meta( $post->ID, '_sku', true );
-		if ( '' !== $sku ) {
-			$same = $wpdb->get_var( $wpdb->prepare(
+		if ( preg_match( '/^SA\d{6}(.{6,})$/', $sku, $m ) && preg_match( '/[A-Za-z]/', $m[1] ) ) {
+			$same = $wpdb->get_col( $wpdb->prepare(
 				"SELECT p.ID FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_sku'
-				 WHERE m.meta_value = %s AND p.ID <> %d AND p.post_type = 'product' AND p.post_status = 'publish' LIMIT 1",
-				$sku,
+				 WHERE m.meta_value REGEXP '^SA[0-9]{6}' AND SUBSTRING(m.meta_value, 9) = %s
+				   AND p.ID <> %d AND p.post_type = 'product' AND p.post_status = 'publish' LIMIT 2",
+				$m[1],
 				$post->ID
 			) );
-			if ( $same ) {
-				return (string) get_permalink( (int) $same );
+			if ( 1 === count( $same ) ) {
+				return (string) get_permalink( (int) $same[0] );
 			}
 		}
 		$title = trim( (string) $post->post_title );
@@ -614,6 +628,26 @@ class Hayak_URL_Recovery {
 			) );
 			if ( $twin ) {
 				return (string) get_permalink( (int) $twin );
+			}
+		}
+		$slug = 'trash' === $post->post_status ? (string) get_post_meta( $post->ID, '_wp_desired_post_slug', true ) : (string) $post->post_name;
+		$stem = preg_replace( '/-\d+$/', '', $slug );
+		if ( '' !== $stem ) {
+			$rows     = $wpdb->get_results( $wpdb->prepare(
+				"SELECT ID, post_name FROM {$wpdb->posts}
+				 WHERE post_type = 'product' AND post_status = 'publish' AND ID <> %d AND ( post_name = %s OR post_name LIKE %s )",
+				$post->ID,
+				$stem,
+				$wpdb->esc_like( $stem ) . '-%'
+			) );
+			$siblings = array();
+			foreach ( (array) $rows as $row ) {
+				if ( preg_match( '/^' . preg_quote( $stem, '/' ) . '(?:-\d+)?$/', (string) $row->post_name ) ) {
+					$siblings[] = (int) $row->ID;
+				}
+			}
+			if ( 1 === count( $siblings ) ) {
+				return (string) get_permalink( $siblings[0] );
 			}
 		}
 		$primary = (int) get_post_meta( $post->ID, 'rank_math_primary_product_cat', true );
