@@ -13,8 +13,9 @@
  * separated from the real text by lines of tatweel.
  *
  * The invariant, enforced inside every WC_Product::save() (admin, REST, importer):
- *   - sections headed by a reseller-notes heading are removed from both texts,
- *     and so are the tatweel divider lines, as long as real text remains;
+ *   - reseller-notes blocks (from their heading to the next divider or the next
+ *     heading of the real text) and tatweel divider lines are removed from both
+ *     texts, as long as real text remains;
  *   - a short description that is not a summary (longer than SUMMARY_MAX_LINES
  *     lines or SUMMARY_MAX_CHARS characters) is replaced by the opening lines of
  *     the description, so it matches the current text. The TikTok catalogue
@@ -37,10 +38,10 @@ class Hayak_Product_Text {
 	const SUMMARY_LINES     = 4;
 
 	/** Reseller-notes headings seen in the supplier text. */
-	const NOTES_HEADING = '/^(?:[أا]فكار\s+(?:ال)?محتوى|زوايا\s+(?:تسويقي[ةه]|بيعي[ةه]|(?:ال)?بيع(?:\s+(?:ال)?منتج)?)|زاوية\s+\S+\s*:)/u';
+	const NOTES_HEADING = '/^(?:[أا]فكار\s+(?:ال)?محتوى|زوايا\s+(?:تسويقي[ةه]|بيعي[ةه]|(?:ال)?بيع(?:\s+(?:ال)?منتج)?))(?:\s*:.*)?\s*$/u';
 
 	/** Headings of the real text; a notes block with no divider ends at the first of these. */
-	const TEXT_HEADING = '/^(?:(?:ال)?مميزات(?:\s+(?:ال)?منتج)?|(?:ال)?مواصفات(?:\s+(?:ال)?منتج)?|تفاصيل\s+سريعة|(?:ال)?محتويات(?:\s+(?:ال)?(?:منتج|عبو[ةه]|عرض))?|(?:كيفي[ةه]|طريق[ةه])\s+(?:ال)?استخدام|(?:ال)?خصائص)\s*:?$/u';
+	const TEXT_HEADING = '/^(?:(?:ال)?مميزات|(?:ال)?مواصفات|تفاصيل|(?:ال)?محتويات|(?:كيفي[ةه]|طريق[ةه])\s+(?:ال)?استخدام|(?:ال)?خصائص)[^.،!؟]{0,30}$/u';
 
 	public static function init() {
 		add_action( 'woocommerce_before_product_object_save', array( __CLASS__, 'normalise' ), 20 );
@@ -95,57 +96,57 @@ class Hayak_Product_Text {
 		return count( $lines ) <= self::SUMMARY_MAX_LINES && mb_strlen( implode( ' ', $lines ), 'UTF-8' ) <= self::SUMMARY_MAX_CHARS;
 	}
 
-	/** Text without reseller-notes sections and tatweel dividers; unchanged if nothing else would remain. */
+	/**
+	 * Text without reseller-notes blocks and tatweel dividers. A notes block runs
+	 * from its heading to the next divider or the next heading of the real text,
+	 * wherever it sits. Unchanged if nothing else would remain.
+	 */
 	public static function clean( $text ) {
 		$text = (string) $text;
 		if ( '' === trim( $text ) ) {
 			return $text;
 		}
-		$sections = array( array() );
+		$out     = array();
+		$skip    = false;
+		$changed = false;
 		foreach ( preg_split( '/\R/u', $text ) as $line ) {
 			if ( self::is_divider( $line ) ) {
-				$sections[] = array();
+				$skip    = false;
+				$changed = true;
+				$out[]   = '';
 				continue;
 			}
-			$sections[ count( $sections ) - 1 ][] = $line;
-		}
-		$kept = array();
-		$cut  = false;
-		foreach ( $sections as $section ) {
-			$first = null;
-			foreach ( $section as $i => $line ) {
-				if ( '' !== self::plain( $line ) ) {
-					$first = $i;
-					break;
-				}
-			}
-			if ( null === $first ) {
+			$plain = self::plain( $line );
+			if ( preg_match( self::NOTES_HEADING, $plain ) ) {
+				$skip    = true;
+				$changed = true;
 				continue;
 			}
-			if ( preg_match( self::NOTES_HEADING, self::plain( $section[ $first ] ) ) ) {
-				$cut  = true;
-				$rest = null;
-				for ( $j = $first + 1; $j < count( $section ); $j++ ) {
-					if ( preg_match( self::TEXT_HEADING, self::plain( $section[ $j ] ) ) ) {
-						$rest = $j;
-						break;
-					}
-				}
-				if ( null === $rest ) {
+			if ( $skip ) {
+				if ( ! preg_match( self::TEXT_HEADING, $plain ) ) {
 					continue;
 				}
-				$section = array_slice( $section, $rest );
+				$skip  = false;
+				$out[] = '';
 			}
-			$kept[] = trim( implode( "\n", $section ), "\n\r" );
+			$out[] = $line;
 		}
-		$kept = array_values( array_filter( $kept, function ( $s ) { return '' !== self::plain( $s ); } ) );
-		if ( ! $kept ) {
-			return $text; // Never empty a text: a notes block with nothing after it stays until a person rewrites it.
-		}
-		if ( ! $cut && 1 === count( $sections ) ) {
+		if ( ! $changed ) {
 			return $text;
 		}
-		return implode( "\n\n", $kept );
+		$lines = array();
+		foreach ( $out as $line ) {
+			$blank = '' === trim( $line );
+			if ( $blank && ( ! $lines || '' === end( $lines ) ) ) {
+				continue; // One blank line between blocks, none at the start.
+			}
+			$lines[] = $blank ? '' : rtrim( $line );
+		}
+		while ( $lines && '' === end( $lines ) ) {
+			array_pop( $lines );
+		}
+		$result = implode( "\n", $lines );
+		return '' === self::plain( str_replace( "\n", ' ', $result ) ) ? $text : $result;
 	}
 
 	/** The opening lines of a description, headings skipped, as plain lines. */
