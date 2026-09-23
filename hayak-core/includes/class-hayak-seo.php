@@ -11,13 +11,17 @@
  * grew past 2,400 products. With ~2,400 products at 200 per page, building a
  * sitemap on request is cheap, and an uncached sitemap cannot go stale.
  *
- * Wishlist action links are kept out of crawlers' way.
- * YITH Wishlist prints "?add_to_wishlist=ID&_wpnonce=..." on every product and
- * archive card. Crawlers followed them: every one of the 631 wishlists stored
- * between 25 Aug and 23 Sep 2026 was anonymous with a single item, and Search
- * Console counted the resulting URLs as "Alternate page with proper canonical
- * tag". They are actions, not pages, so they get the same robots.txt rule
- * WooCommerce already ships for ?add-to-cart=.
+ * Ad landing pages are kept out of the index by default.
+ * The store runs its TikTok, Snap and Meta ads to Elementor order-form pages
+ * built on the Canvas template (no header, no footer). There are hundreds of
+ * them, many near-copies of one another or of the product page, and they are
+ * reached from ads, not from search: of 456 published on 23 Sep 2026, 12 had
+ * ever earned a search click. Indexed, they compete with the product pages and
+ * fill Search Console's "crawled / discovered - currently not indexed" and
+ * duplicate lists. So a Canvas page or post that is published without an
+ * explicit robots choice gets Rank Math's noindex (links still followed). Ads
+ * are unaffected: ad review and AdsBot do not read meta robots. A page that
+ * should rank is set to "index" in its Rank Math panel, and that choice is kept.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -26,22 +30,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Hayak_SEO {
 
+	const LANDING_TEMPLATE = 'elementor_canvas';
+
 	public static function init() {
 		add_filter( 'rank_math/sitemap/enable_caching', '__return_false' );
-		add_filter( 'robots_txt', array( __CLASS__, 'robots_txt' ), 20, 2 );
+		// A page becomes a published Canvas page in either order: status first or template first.
+		add_action( 'transition_post_status', array( __CLASS__, 'status_changed' ), 20, 3 );
+		add_action( 'added_post_meta', array( __CLASS__, 'template_changed' ), 20, 4 );
+		add_action( 'updated_post_meta', array( __CLASS__, 'template_changed' ), 20, 4 );
 	}
 
-	public static function robots_txt( $output, $public ) {
-		if ( ! $public || false !== strpos( $output, 'add_to_wishlist=' ) ) {
-			return $output;
+	public static function status_changed( $new_status, $old_status, $post ) {
+		if ( 'publish' === $new_status && 'publish' !== $old_status && $post ) {
+			self::landing_default( $post->ID );
 		}
-		$rules = "Disallow: /*?add_to_wishlist=\nDisallow: /*&add_to_wishlist=\n";
-		// Inside the existing "User-agent: *" group, right after its first line.
-		if ( preg_match( '/^User-agent:\s*\*\s*$/mi', $output, $m, PREG_OFFSET_CAPTURE ) ) {
-			$at = $m[0][1] + strlen( $m[0][0] );
-			return substr( $output, 0, $at ) . "\n" . rtrim( $rules ) . substr( $output, $at );
+	}
+
+	public static function template_changed( $meta_id, $post_id, $meta_key, $meta_value ) {
+		if ( '_wp_page_template' === $meta_key && self::LANDING_TEMPLATE === $meta_value ) {
+			self::landing_default( $post_id );
 		}
-		return "User-agent: *\n" . $rules . "\n" . $output;
+	}
+
+	/** Published Canvas page or post with no robots choice of its own: noindex, follow. */
+	public static function landing_default( $post_id ) {
+		$post = get_post( $post_id );
+		if ( ! $post || 'publish' !== $post->post_status || ! in_array( $post->post_type, array( 'page', 'post' ), true ) ) {
+			return false;
+		}
+		if ( self::LANDING_TEMPLATE !== get_post_meta( $post->ID, '_wp_page_template', true ) ) {
+			return false;
+		}
+		if ( metadata_exists( 'post', $post->ID, 'rank_math_robots' ) ) {
+			return false;
+		}
+		return (bool) update_post_meta( $post->ID, 'rank_math_robots', array( 'noindex' ) );
 	}
 
 	/** One-off: remove every sitemap file and transient Rank Math already cached. */
