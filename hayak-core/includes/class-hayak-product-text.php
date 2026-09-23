@@ -110,6 +110,9 @@ class Hayak_Product_Text {
 		if ( '' === trim( $text ) ) {
 			return $text;
 		}
+		$text = self::letters( $text );
+		// A long tatweel run sharing a line with text is still a divider.
+		$text = preg_replace( '/[ \t]*\x{0640}{10,}[ \t]*/u', "\n\u{0640}\u{0640}\u{0640}\u{0640}\u{0640}\n", $text );
 		$all  = preg_split( '/\R/u', $text );
 		$drop = self::angle_runs( $all );
 		$out     = array();
@@ -168,6 +171,26 @@ class Hayak_Product_Text {
 		}
 		$keep = trim( implode( "\n", $keep ) );
 		return '' === $keep ? $text : $keep;
+	}
+
+	/**
+	 * Text pasted from a PDF arrives in Arabic presentation forms (one code point
+	 * per glyph shape) with Persian yeh and kaf. It reads the same but matches
+	 * nothing: not a search, not a heading. Restore ordinary Arabic letters.
+	 */
+	protected static function letters( $text ) {
+		if ( ! class_exists( 'Normalizer' ) || ! preg_match( '/[\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFC}]/u', $text ) ) {
+			return $text;
+		}
+		$text = preg_replace_callback(
+			'/[\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFC}]+/u',
+			function ( $m ) {
+				$n = Normalizer::normalize( $m[0], Normalizer::FORM_KC );
+				return false === $n ? $m[0] : $n;
+			},
+			$text
+		);
+		return strtr( $text, array( 'ی' => 'ي', 'ک' => 'ك' ) );
 	}
 
 	/**
