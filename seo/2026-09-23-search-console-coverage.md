@@ -139,6 +139,17 @@ so they stay live.
   to ordinary Arabic letters. No published product carries reseller notes or
   dividers any more; the rendered pages print the description once.
 
+- **Crawl depth.** The shop showed Flatsome's default 12 products per page,
+  so older products sat around /shop/page/124/ (Google reported one of the
+  "crawled, not indexed" products with exactly that referrer). Products per
+  page is now 48: the shop has about 46 pages and the largest category about
+  17.
+- **Offers tag.** The old offer categories redirect to /product-tag/offers/,
+  but the tag rule only knew titles starting with عرض or containing "+". It
+  now also takes bundles titled باقة/باكج/بكج and two-packs (قطعتين, حبتين);
+  26 products joined the tag (337 in total), none left it. "N قطع" alone does
+  not count: a 4-piece luggage set is one product.
+
 ### Search Console
 
 - Submitted `sitemap_index.xml`; removed the stale submissions
