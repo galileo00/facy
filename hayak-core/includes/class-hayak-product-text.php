@@ -265,18 +265,17 @@ class Hayak_Product_Text {
 			$wpdb->prepare(
 				"SELECT ID FROM {$wpdb->posts}
 				 WHERE post_type = 'product' AND post_status IN ('publish','draft','private','pending')
-				   AND ( CHAR_LENGTH(post_excerpt) > %d OR post_content LIKE %s OR post_excerpt LIKE %s OR post_content REGEXP %s OR post_excerpt REGEXP %s
-				         OR post_content LIKE %s OR post_excerpt LIKE %s OR post_content LIKE %s OR post_excerpt LIKE %s )
+				   AND ( CHAR_LENGTH(post_excerpt) > %d OR CHAR_LENGTH(post_excerpt) - CHAR_LENGTH(REPLACE(post_excerpt, '\n', '')) >= %d OR post_content LIKE %s OR post_excerpt LIKE %s OR post_content REGEXP %s OR post_excerpt REGEXP %s
+				         OR post_content LIKE %s OR post_excerpt LIKE %s )
 				 ORDER BY ID DESC",
 				self::SUMMARY_MAX_CHARS,
+				self::SUMMARY_MAX_LINES,
 				'%' . $wpdb->esc_like( 'ـــــ' ) . '%',
 				'%' . $wpdb->esc_like( 'ـــــ' ) . '%',
-				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)',
-				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)',
+				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)|[إا]ليك (محتوى|وصف|نص|بعض|أهم|اهم)',
+				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)|[إا]ليك (محتوى|وصف|نص|بعض|أهم|اهم)',
 				'%' . $wpdb->esc_like( 'زاوية ' ) . '%',
-				'%' . $wpdb->esc_like( 'زاوية ' ) . '%',
-				'%' . $wpdb->esc_like( 'ليك ' ) . '%',
-				'%' . $wpdb->esc_like( 'ليك ' ) . '%'
+				'%' . $wpdb->esc_like( 'زاوية ' ) . '%'
 			)
 		);
 		$done = array( 'checked' => 0, 'changed' => 0 );

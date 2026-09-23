@@ -47,12 +47,82 @@ as "URL is unknown to Google".
 7. **Duplicate WooCommerce pages.** /cart/, /checkout/ and /my-account/
    (pages 655–657) are published copies; WooCommerce uses /cart-2/,
    /checkout-2/ and /my-account-2/. /cart/ was indexed (8 impressions).
-8. **Page cache.** The host's nginx cache keeps each page per User-Agent for a
+8. **Flatsome and Astra demo content was published.** 80 demo pages
+   (/elements/*, /demos/*, /images-*, /test/, /sample-page/, the old
+   /shop-2/ renamed old-shop-archive with 280 impressions, /home/,
+   /my-account-2/wishlist/) sat in the page sitemap; the front page itself
+   was a child of /demos/shop-demos/.
+9. **Ad landing pages were indexable.** 456 Elementor Canvas order-form pages
+   (and 12 funnel posts) were in the sitemap with no robots choice; 12 of
+   them ever earned a search click.
+10. **Every product page printed its text twice.** The Taager importer copies
+    the whole description into the short description (2,121 byte-identical,
+    ~300 an older copy, some with specs that no longer match); Flatsome prints
+    both. 767 descriptions also carried reseller notes ("زوايا تسويقية",
+    "أفكار المحتوى", runs of "زاوية ..." lines) and tatweel dividers.
+11. **Template links to redirecting or empty URLs.** The blog sidebar's
+    Archives widget linked every month to a date archive Rank Math redirects
+    home; the shop sidebar listed the empty misc-products category; seven
+    empty demo terms were live.
+12. **Page cache.** The host's nginx cache keeps each page per User-Agent for a
    while; a browser type that already had a copy keeps seeing the old page.
    This is the likely reason an out-of-stock product was seen on the home page
    on 2026-09-22 while the server rendered only in-stock products.
+13. **Three renamed products lost their old slugs.** Their titles and slugs
+    were changed directly in the database, so WordPress never recorded the old
+    URL that Google and shared links still use.
 
 What the data rules out: in-stock products are not the problem (the inspected
 sample is overwhelmingly "Submitted and indexed"); out-of-stock products are
 indexed and earn clicks (200 of 244 have impressions, 253 clicks in 95 days),
 so they stay live.
+
+## Fixes (all live on 2026-09-23)
+
+### Code (hayak-core 2.7.0)
+
+- `class-hayak-url-recovery.php`: one redirect authority inside WordPress's
+  own 404 guess (`pre_redirect_guess_404_permalink`), so it only ever sees
+  real 404s and never shadows a live page.
+  - A stored map of retired paths (256 rules: `seo/data/2026-09-23-redirect-map.json`)
+    gives each one a 301 to its equivalent or a 410.
+  - A product that is trashed or deleted records its own rule (same SKU, then
+    same in-stock title, then its category), and rules that pointed at it are
+    re-pointed, so no chains form. The Taager sync's out-of-stock trashing now
+    leaves a redirect instead of a 404.
+  - A mangled product link is matched to the one product at most three
+    letters away (never across different numbers or Latin model names, never
+    to a product that is drafted or trashed), including against every slug a
+    product had before. Measured on the 97 mangled URLs in the export: 78
+    recover, 0 onto a different product.
+  - /page/N past the end of an archive goes to page 1; `?product-page=N`
+    collapses into the real archive page.
+- `class-hayak-seo.php`: sitemaps are built on request (Rank Math's file
+  cache is off); Canvas landing pages published without a robots choice get
+  noindex, follow. The robots.txt wishlist Disallow was dropped: the source of
+  those URLs is gone, and blocking them would only hide their canonical.
+- `class-hayak-product-text.php`: inside every product save, reseller notes
+  and dividers are removed, and a short description longer than a summary is
+  replaced by the opening lines of the current description (never emptied,
+  because the TikTok catalogue sends it). The old text is kept in
+  `_hayak_original_short_description`; a daily sweep catches writes that
+  bypass WooCommerce.
+
+### Data and settings
+
+- Redirect map loaded: deleted products, all pre-flattening category URLs
+  (including /product-category/uncategorized/ and two only Google still had),
+  /shop-2/, the policy aliases, /cart/ /checkout/ /my-account/ to the live
+  WooCommerce pages, demo pages with impressions to their real equivalents,
+  every other demo page, post, portfolio item and term to 410.
+- 80 demo and orphan pages drafted; the front page moved to the top level.
+- YITH WooCommerce Wishlist deactivated (not deleted): no customer had ever
+  used it, it had no wishlist page, and its plain links fed crawlers.
+- 456 Canvas landing pages and funnel posts set to noindex; the 12 with
+  clicks set to index explicitly.
+- Blog sidebar Archives widget removed; shop category widget hides empty
+  categories; seven empty demo terms deleted.
+- The hand-set canonical that pointed in-stock product 39997 at its hidden
+  out-of-stock twin 39981 now points the other way.
+- `_wp_old_slug` restored for products 46151, 42957 and 40552.
+- Rank Math: product tags indexable (the offers tag), portfolio sitemap off.
