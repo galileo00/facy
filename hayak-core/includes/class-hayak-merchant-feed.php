@@ -20,10 +20,11 @@
  * Words. Arabic names many tools "مسدس" (pistol): heat gun, nail gun, massage gun,
  * foam sprayer, tagging gun. Google reads the word and disapproves the item as
  * "Guns and Parts" (15 on 24 Sep 2026). The storefront keeps the words shoppers
- * search with; the feed title and description name the tool for what it is.
- * Only names are translated: a product that really is weapon-like (one that
- * fires powder loads, a replica gun) is not reworded but kept out of the feed
- * with Google for WooCommerce's own "dont-sync-and-show" visibility.
+ * search with; the feed names the tool for what it is ("مسدس حرارة" is sent as
+ * "منفاخ هواء ساخن"). Only named tool phrases are translated, and in a tool's own
+ * description the bare word and the trigger too. Nothing else is: a toy water
+ * gun or a product that fires powder loads is not reworded (the latter is kept
+ * out of the feed with Google for WooCommerce's "dont-sync-and-show" visibility).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -47,25 +48,48 @@ class Hayak_Merchant_Feed {
 	const MIN_SIDE       = 250;
 	const PREFERRED_SIDE = 500;
 
-	/** Merchant Center issues that mean "send another main image". */
-	const IMAGE_CODES = array( 'image_unwanted_overlays', 'image_too_small', 'image_single_color', 'image_link_broken' );
+	/**
+	 * Merchant Center verdicts on what an image shows. A broken or unreachable
+	 * link says nothing about the picture and is fixed on the server, never by
+	 * rejecting the image.
+	 */
+	const IMAGE_CODES = array( 'image_unwanted_overlays', 'image_too_small', 'image_single_color' );
 
-	/** Feed wording: pattern => replacement, most specific first. */
-	const WORDS = array(
-		'/مسدس\s+(?:ال)?(?:حرار[ةه]|حراري[ةه]?|هواء\s+(?:ال)?ساخن)/u'                                    => 'منفاخ هواء ساخن',
-		'/بندقي[ةه]\s+(?:ال)?هواء\s+(?:ال)?ساخن/u'                                                       => 'منفاخ هواء ساخن',
-		'/خرطوش[ةه](?=\s+(?:ال)?(?:سيليكون|سيلكون|سليكون|غراء))/u'                                        => 'أنبوب',
-		'/مسدس\s+(?:ال)?(?:مسامير|دبابيس|تدبيس)/u'                                                       => 'دباسة مسامير',
-		'/مسدس\s+(?:ال)?(?:تدليك|مساج)/u'                                                                 => 'جهاز تدليك',
-		'/مسدس(\s+(?:ال)?(?:سيليكون|سيلكون|سليكون|شمع|غراء|صمغ))/u'                                       => 'أداة$1',
-		'/مسدس(?:ات)?(\s+(?:ال)?(?:رش|بخ|فوم|رغو[ةه]|ماء|مياه|موي[ةه]|ضغط|غسيل|طلاء|دهان|بوي[ةه]))/u'    => 'بخاخ$1',
-		'/مسدس(\s+(?:ال)?(?:تعديل|تسعير|بطاقات|تثبيت))/u'                                                 => 'أداة$1',
-		'/(?<!\p{L})(ال)?زناد(?!\p{L})/u'                                                                 => '$1مقبض',
-		'/(?:الإطلاق|الاطلاق)(?=\s+(?:بالخطأ|بالخطا|بالغلط))/u'                                           => 'التشغيل',
+	/**
+	 * Tools Arabic names "مسدس ...": [words after مسدس, feed name, feed name when
+	 * definite, keep those words, title words naming the same tool without مسدس].
+	 * Masculine names, like مسدس, so the adjectives that follow still agree.
+	 */
+	const TOOLS = array(
+		array( '(?:ال)?(?:حرار[ةه]|حراري[ةه]?|هواء\s+(?:ال)?ساخن)', 'منفاخ هواء ساخن', 'منفاخ الهواء الساخن', false, 'منفاخ\s+(?:ال)?هواء|هيت\s*جن' ),
+		array( '(?:ال)?(?:مسامير|دبابيس|تدبيس)', 'جهاز تثبيت مسامير', 'جهاز تثبيت المسامير', false, 'دباس[ةه]|مثبت\s+(?:ال)?مسامير' ),
+		array( '(?:ال)?(?:تدليك|مساج)', 'جهاز تدليك', 'جهاز التدليك', false, 'مدلك|مساج|تدليك' ),
+		array( '(?:ال)?(?:سيليكون|سيلكون|سليكون)', 'جهاز ضخ السيليكون', 'جهاز ضخ السيليكون', false, 'لاصق[ةه]?\s+(?:ال)?(?:سيليكون|سيلكون|سليكون)|(?:سيليكون|سيلكون|سليكون)\S*\s+(?:ال)?(?:لاصق|مانع)' ),
+		array( '(?:ال)?(?:شمع|غراء|صمغ)', 'جهاز لصق حراري', 'جهاز اللصق الحراري', false, 'شمع\s+(?:ال)?لصق|غراء\s+حراري' ),
+		array( '(?:ال)?(?:رش|بخ|فوم|رغو[ةه]|ضغط|غسيل|طلاء|دهان|بوي[ةه])', 'بخاخ', 'البخاخ', true, 'بخاخ|مضخ[ةه]|رشاش\s+(?:ال)?(?:مياه|ماء|مبيد)' ),
+		array( '(?:تعديل\s+(?:ال)?مقاسات|(?:ال)?تسعير|(?:ال)?بطاقات)', 'جهاز تثبيت البطاقات', 'جهاز تثبيت البطاقات', false, 'تسعير|بطاقات\s+(?:ال)?أسعار' ),
 	);
 
+	/** A toy is never a tool, whatever it is called. */
+	const TOY = '/لعب[ةه]?|ألعاب|العاب|أطفال|اطفال/u';
+
+	/** Other tool phrases that read as weapons: pattern => feed wording. */
+	const PHRASES = array(
+		'/بندقي[ةه]\s+(?:ال)?هواء\s+(?:ال)?ساخن/u'                     => 'منفاخ هواء ساخن',
+		'/خرطوش[ةه](?=\s+(?:ال)?(?:سيليكون|سيلكون|سليكون|غراء))/u'      => 'أنبوب',
+		'/\bmassage\s+guns?\b/iu'                                      => 'massager',
+		'/\bheat\s+guns?\b/iu'                                         => 'hot air tool',
+		'/\bnail\s+guns?\b/iu'                                         => 'nailer',
+		'/\bglue\s+guns?\b/iu'                                         => 'glue applicator',
+		'/\b(spray|foam)\s+guns?\b/iu'                                 => '$1 sprayer',
+	);
+
+	/** A product that fires powder loads is never reworded. */
+	const POWDER = '/بارود|طلقات|ذخير/u';
+
 	public static function init() {
-		add_filter( 'woocommerce_gla_product_attribute_values', array( __CLASS__, 'attributes' ), 10, 3 );
+		add_filter( 'woocommerce_gla_product_attribute_values', array( __CLASS__, 'attributes' ), 10, 2 );
+		add_filter( 'woocommerce_gla_product_attribute_value_description', array( __CLASS__, 'description' ), 10, 2 );
 		add_action( self::REVIEW_HOOK, array( __CLASS__, 'review' ) );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
 	}
@@ -81,8 +105,12 @@ class Hayak_Merchant_Feed {
 		wp_clear_scheduled_hook( self::REVIEW_HOOK, array( true ) );
 	}
 
-	/** Google for WooCommerce: the product's own overrides, applied after everything it maps. */
-	public static function attributes( $attributes, $product, $adapter = null ) {
+	/**
+	 * Google for WooCommerce: the product's own overrides, merged over everything it
+	 * maps (the Merchant API adapter takes the title from the product, so it is
+	 * computed here from the product, not read back from the adapter).
+	 */
+	public static function attributes( $attributes, $product ) {
 		if ( ! $product instanceof WC_Product ) {
 			return $attributes;
 		}
@@ -97,34 +125,136 @@ class Hayak_Merchant_Feed {
 				$attributes['additionalImageLinks'] = array_slice( $urls, 0, 10 );
 			}
 		}
-		if ( is_object( $adapter ) && method_exists( $adapter, 'getTitle' ) && ! isset( $attributes['title'] ) ) {
-			$title = (string) $adapter->getTitle();
-			$words = self::words( $title );
-			if ( '' !== $words && $words !== $title ) {
-				$attributes['title'] = $words;
-			}
-		}
-		if ( is_object( $adapter ) && method_exists( $adapter, 'getDescription' ) && ! isset( $attributes['description'] ) ) {
-			$description = (string) $adapter->getDescription();
-			$words       = self::words( $description );
-			if ( '' !== $words && $words !== $description ) {
-				$attributes['description'] = $words;
-			}
+		$title = (string) $product->get_title();
+		$feed  = self::feed_title( $title, (string) $product->get_description() );
+		if ( '' !== $feed && $feed !== $title && ! isset( $attributes['title'] ) ) {
+			$attributes['title'] = $feed;
 		}
 		return $attributes;
 	}
 
-	/** Feed wording for tools Arabic names after a gun. */
-	public static function words( $text ) {
-		$text = (string) $text;
-		if ( '' === $text || ! preg_match( '/مسدس|بندقي|خرطوش|زناد|الإطلاق|الاطلاق/u', $text ) ) {
-			return $text;
+	/** Google for WooCommerce: the description it sends, as its last step. */
+	public static function description( $description, $product ) {
+		if ( ! $product instanceof WC_Product ) {
+			return $description;
 		}
-		$out = $text;
-		foreach ( self::WORDS as $pattern => $replacement ) {
-			$out = preg_replace( $pattern, $replacement, $out );
+		return self::feed_description( (string) $description, (string) $product->get_title() );
+	}
+
+	/** Feed title: named tool phrases translated, and a tool's "gun-shaped". */
+	public static function feed_title( $title, $description = '' ) {
+		if ( ! preg_match( '/مسدس|بندقي|خرطوش|gun/iu', $title ) || self::keep_words( $title, $description ) ) {
+			return $title;
 		}
-		return trim( preg_replace( '/[ \t]{2,}/u', ' ', $out ) );
+		$out = self::rename( $title );
+		if ( self::tool_in( $title ) ) {
+			$out = self::shape( $out );
+		}
+		return self::tidy( $out );
+	}
+
+	/**
+	 * Feed description: named tool phrases translated; when the title names one of
+	 * the tools, its bare name, the "gun-shaped" phrase and the trigger too.
+	 */
+	public static function feed_description( $description, $title ) {
+		if ( ! preg_match( '/مسدس|بندقي|خرطوش|زناد|الإطلاق|الاطلاق|gun/iu', $description ) || self::keep_words( $title, $description ) ) {
+			return $description;
+		}
+		$out  = self::rename( $description );
+		$tool = self::tool_in( $title );
+		if ( $tool ) {
+			$out = self::shape( $out );
+			$out = preg_replace_callback(
+				'/(?<!\p{L})([وف]?[بلك]?)(ال|لل)?مسدس(?:ات)?(?!\p{L})/u',
+				function ( $m ) use ( $tool ) {
+					return self::join( $m[1], $m[2] ?? '', $tool[1], $tool[2] );
+				},
+				$out
+			);
+			$out = preg_replace_callback(
+				'/(?<!\p{L})([وف]?[بلك]?)(ال|لل)?زناد(?!\p{L})/u',
+				function ( $m ) {
+					return self::join( $m[1], $m[2] ?? '', 'زر تشغيل', 'زر التشغيل' );
+				},
+				$out
+			);
+			$out = preg_replace( '/(?:الإطلاق|الاطلاق)(?=\s+(?:بالخطأ|بالخطا|بالغلط))/u', 'التشغيل', $out );
+			if ( 'جهاز ضخ السيليكون' === $tool[1] ) {
+				// The silicone tube is a "cartridge" too.
+				$out = preg_replace_callback(
+					'/(?<!\p{L})([وف]?[بلك]?)(ال|لل)?(?:خرطوش[ةه]|خراطيش)(?!\p{L})/u',
+					function ( $m ) {
+						return self::join( $m[1], $m[2] ?? '', 'أنبوب', 'الأنبوب' );
+					},
+					$out
+				);
+			}
+		}
+		return self::tidy( $out );
+	}
+
+	/** A toy, or a product that fires powder loads, keeps its own words. */
+	protected static function keep_words( $title, $description ) {
+		return preg_match( self::TOY, $title ) || preg_match( self::POWDER, $title . ' ' . $description );
+	}
+
+	/** Every "مسدس <tool words>" and other tool phrase, in any text. */
+	protected static function rename( $text ) {
+		foreach ( self::TOOLS as $tool ) {
+			$text = preg_replace_callback(
+				'/(?<!\p{L})([وف]?[بلك]?)(ال|لل)?مسدس(?:ات)?\s+(' . $tool[0] . ')(?!\p{L})/u',
+				function ( $m ) use ( $tool ) {
+					if ( $tool[3] ) {
+						return self::join( $m[1], $m[2], $tool[1], $tool[2] ) . ' ' . $m[3];
+					}
+					// "مسدس المسامير" is definite through its second word.
+					$article = ( '' === $m[2] && 0 === mb_strpos( $m[3], 'ال' ) ) ? 'ال' : $m[2];
+					return self::join( $m[1], $article, $tool[1], $tool[2] );
+				},
+				$text
+			);
+		}
+		foreach ( self::PHRASES as $pattern => $replacement ) {
+			$text = preg_replace( $pattern, $replacement, $text );
+		}
+		return $text;
+	}
+
+	/** The tool a title names, with or without مسدس, or null. */
+	protected static function tool_in( $title ) {
+		foreach ( self::TOOLS as $tool ) {
+			if ( preg_match( '/مسدس(?:ات)?\s+(?:' . $tool[0] . ')(?!\p{L})/u', $title ) ) {
+				return $tool;
+			}
+		}
+		foreach ( self::TOOLS as $tool ) {
+			if ( preg_match( '/(?<!\p{L})(?:[وفبلك]?(?:ال)?)(?:' . $tool[4] . ')/u', $title ) ) {
+				return $tool;
+			}
+		}
+		return null;
+	}
+
+	/** A tool "بشكل مسدس" / "على شكل مسدس" has a pistol grip. */
+	protected static function shape( $text ) {
+		return preg_replace( '/(?:ب|على\s+)شكل\s+(?:ال)?مسدس(?!\p{L})/u', 'بمقبض', $text );
+	}
+
+	/** A name after its clitics (و ف, then ب ل ك) and the article the replaced word carried. */
+	protected static function join( $clitic, $article, $name, $definite ) {
+		if ( 'لل' === $article ) {
+			$clitic .= 'ل';
+		}
+		$word = '' === $article ? $name : $definite;
+		if ( 'ل' === mb_substr( $clitic, -1 ) && 0 === mb_strpos( $word, 'ال' ) ) {
+			return $clitic . mb_substr( $word, 1 );
+		}
+		return $clitic . $word;
+	}
+
+	protected static function tidy( $text ) {
+		return trim( preg_replace( '/[ \t]{2,}/u', ' ', $text ) );
 	}
 
 	/**

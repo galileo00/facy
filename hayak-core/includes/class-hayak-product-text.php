@@ -105,7 +105,7 @@ class Hayak_Product_Text {
 	/** A title as a title: ordinary letters, no leading list mark, single spaces. */
 	public static function title( $name ) {
 		$name = preg_replace( '/[\s\x{00A0}]+/u', ' ', self::letters( (string) $name ) );
-		return trim( preg_replace( '/^(?:[\s•·▪●◦►✔✅🔹🔸*]|[\-–—](?=\s))+/u', '', $name ) );
+		return trim( preg_replace( '/^(?:[\s•·▪●◦►✔✅🔹🔸\x{FE0F}\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}]|[\-–—*](?=\s))+/u', '', $name ) );
 	}
 
 	/** Empty, or short enough to be a summary rather than a description. */
