@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Hayak Core
- * Description:       Hayak Store's own integrations in one place: Elementor order forms -> WooCommerce orders, the product-page quick order form, purchase dataLayer for the GTM pixels, the Taager webhook watchdog, the no-image product guard, product text that is never printed twice, home-page best sellers and offers, redirects for retired URLs, always-fresh sitemaps, noindex ad landing pages, and the storefront polish.
- * Version:           2.7.0
+ * Description:       Hayak Store's own integrations in one place: Elementor order forms -> WooCommerce orders, the product-page quick order form, purchase dataLayer for the GTM pixels, the Taager webhook watchdog, the no-image product guard, product text that is never printed twice, new products filed in their category, a Merchant Center feed with clean main images and tool names Google does not read as weapons, home-page best sellers and offers, redirects for retired URLs, always-fresh sitemaps, noindex ad landing pages, and the storefront polish.
+ * Version:           2.8.0
  * Author:            Hayak Store
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HAYAK_CORE_VERSION', '2.7.0' );
+define( 'HAYAK_CORE_VERSION', '2.8.0' );
 define( 'HAYAK_CORE_PATH', plugin_dir_path( __FILE__ ) );
 
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-fields.php';
@@ -27,6 +27,8 @@ require_once HAYAK_CORE_PATH . 'includes/class-hayak-taager-watchdog.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-theme-polish.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-product-guard.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-product-text.php';
+require_once HAYAK_CORE_PATH . 'includes/class-hayak-product-category.php';
+require_once HAYAK_CORE_PATH . 'includes/class-hayak-merchant-feed.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-storefront.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-url-recovery.php';
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-seo.php';
@@ -43,6 +45,8 @@ Hayak_Taager_Watchdog::init();
 Hayak_Theme_Polish::init();
 Hayak_Product_Guard::init();
 Hayak_Product_Text::init();
+Hayak_Product_Category::init();
+Hayak_Merchant_Feed::init();
 Hayak_Storefront::init();
 Hayak_URL_Recovery::init();
 Hayak_SEO::init();
@@ -87,6 +91,8 @@ function hayak_core_deactivate() {
 	Hayak_Taager_Watchdog::deactivate();
 	Hayak_Product_Guard::unschedule();
 	Hayak_Product_Text::unschedule();
+	Hayak_Product_Category::unschedule();
+	Hayak_Merchant_Feed::unschedule();
 	$gc = wp_next_scheduled( Hayak_Orders::GC_HOOK );
 	while ( $gc ) {
 		wp_unschedule_event( $gc, Hayak_Orders::GC_HOOK );

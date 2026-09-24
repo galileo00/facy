@@ -20,7 +20,10 @@
  *   - a short description that is not a summary (longer than SUMMARY_MAX_LINES
  *     lines or SUMMARY_MAX_CHARS characters) is replaced by the opening lines of
  *     the description, so it matches the current text. The TikTok catalogue
- *     sends the short description, so it is never left empty.
+ *     sends the short description, so it is never left empty;
+ *   - a title has no leading list mark and no doubled spaces: the importer
+ *     copies Taager's "• " bullet into the name (254 titles cleaned by hand in
+ *     pass 5, and new ones arriving with every import since).
  * The replaced short description is kept in META_ORIGINAL. A daily sweep
  * catches text written behind WooCommerce's back.
  */
@@ -72,6 +75,11 @@ class Hayak_Product_Text {
 		if ( ! $product instanceof WC_Product || 'variation' === $product->get_type() ) {
 			return;
 		}
+		$name  = (string) $product->get_name( 'edit' );
+		$title = self::title( $name );
+		if ( '' !== $title && $title !== $name ) {
+			$product->set_name( $title );
+		}
 		$desc  = (string) $product->get_description( 'edit' );
 		$short = (string) $product->get_short_description( 'edit' );
 		$clean = self::clean( $desc );
@@ -92,6 +100,12 @@ class Hayak_Product_Text {
 			}
 			$product->set_short_description( $summary );
 		}
+	}
+
+	/** A title as a title: ordinary letters, no leading list mark, single spaces. */
+	public static function title( $name ) {
+		$name = preg_replace( '/[\s\x{00A0}]+/u', ' ', self::letters( (string) $name ) );
+		return trim( preg_replace( '/^(?:[\s•·▪●◦►✔✅🔹🔸*]|[\-–—](?=\s))+/u', '', $name ) );
 	}
 
 	/** Empty, or short enough to be a summary rather than a description. */
@@ -289,7 +303,8 @@ class Hayak_Product_Text {
 				"SELECT ID FROM {$wpdb->posts}
 				 WHERE post_type = 'product' AND post_status IN ('publish','draft','private','pending')
 				   AND ( CHAR_LENGTH(post_excerpt) > %d OR CHAR_LENGTH(post_excerpt) - CHAR_LENGTH(REPLACE(post_excerpt, '\n', '')) >= %d OR post_content LIKE %s OR post_excerpt LIKE %s OR post_content REGEXP %s OR post_excerpt REGEXP %s
-				         OR post_content LIKE %s OR post_excerpt LIKE %s )
+				         OR post_content LIKE %s OR post_excerpt LIKE %s
+				         OR post_title LIKE %s OR post_title LIKE %s OR post_title LIKE %s OR post_title LIKE %s OR post_title LIKE %s )
 				 ORDER BY ID DESC",
 				self::SUMMARY_MAX_CHARS,
 				self::SUMMARY_MAX_LINES,
@@ -298,7 +313,12 @@ class Hayak_Product_Text {
 				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)|[إا]ليك (محتوى|وصف|نص|بعض|أهم|اهم)',
 				'(أفكار|افكار) المحتوى|زوايا (تسويقي|بيع|البيع)|[إا]ليك (محتوى|وصف|نص|بعض|أهم|اهم)',
 				'%' . $wpdb->esc_like( 'زاوية ' ) . '%',
-				'%' . $wpdb->esc_like( 'زاوية ' ) . '%'
+				'%' . $wpdb->esc_like( 'زاوية ' ) . '%',
+				$wpdb->esc_like( '•' ) . '%',
+				$wpdb->esc_like( '-' ) . '%',
+				$wpdb->esc_like( ' ' ) . '%',
+				'%' . $wpdb->esc_like( ' ' ),
+				'%' . $wpdb->esc_like( '  ' ) . '%'
 			)
 		);
 		$done = array( 'checked' => 0, 'changed' => 0 );

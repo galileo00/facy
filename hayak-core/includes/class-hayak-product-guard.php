@@ -10,6 +10,10 @@
  * disapproved. Every one of those errors on this store traced back to exactly
  * that: a live product with no `_thumbnail_id`.
  *
+ * An image under MIN_IMAGE_SIDE pixels on its short side counts as no image:
+ * Google rejects it ("Image too small") and on the page it is a smudge. The
+ * importer produced one such product (56627, a 38 x 50 px image) by 24 Sep 2026.
+ *
  * So instead of patching the schema or the feed, the store enforces the
  * invariant at the source:
  *   - a product being saved as `publish` without an image is held as a draft,
@@ -27,6 +31,9 @@ class Hayak_Product_Guard {
 	const META_HELD   = '_hayak_held_no_image';
 	const HELD_STATUS = 'draft';
 	const SWEEP_HOOK  = 'hayak_core_product_guard_sweep';
+
+	/** Google's floor for any product image. */
+	const MIN_IMAGE_SIDE = 100;
 
 	/** Held products that gained an image during this request; published on shutdown. */
 	private static $release = array();
@@ -72,24 +79,40 @@ class Hayak_Product_Guard {
 		if ( 'publish' !== $product->get_status( 'edit' ) ) {
 			return;
 		}
-		if ( $product->get_image_id( 'edit' ) ) {
+		if ( self::usable_image( $product->get_image_id( 'edit' ) ) ) {
 			return;
 		}
 		$product->set_status( self::HELD_STATUS );
 		$product->update_meta_data( self::META_HELD, time() );
 	}
 
+	/** An attachment big enough to be a product image. Unknown dimensions are given the benefit of the doubt. */
+	public static function usable_image( $image_id ) {
+		if ( ! $image_id ) {
+			return false;
+		}
+		$meta = wp_get_attachment_metadata( $image_id );
+		if ( empty( $meta['width'] ) || empty( $meta['height'] ) ) {
+			return true;
+		}
+		return min( (int) $meta['width'], (int) $meta['height'] ) >= self::MIN_IMAGE_SIDE;
+	}
+
 	public static function thumbnail_meta_written( $meta_id, $post_id, $meta_key, $meta_value ) {
 		if ( '_thumbnail_id' !== $meta_key || ! (int) $meta_value ) {
 			return;
 		}
-		if ( 'product' !== get_post_type( $post_id ) || ! get_post_meta( $post_id, self::META_HELD, true ) ) {
+		if ( 'product' !== get_post_type( $post_id ) ) {
 			return;
 		}
 		// Not published inline: this can fire in the middle of a WC save, and a
 		// nested wp_update_post there would race the data store. Shutdown is
 		// after every save of this request has finished.
-		self::$release[ (int) $post_id ] = true;
+		if ( get_post_meta( $post_id, self::META_HELD, true ) ) {
+			self::$release[ (int) $post_id ] = true;
+		} else {
+			self::$recheck[ (int) $post_id ] = true; // A new featured image may be too small to use.
+		}
 	}
 
 	/** Featured image removed from a published product: re-check it once the request is done. */
@@ -118,7 +141,7 @@ class Hayak_Product_Guard {
 		if ( ! $product instanceof WC_Product || 'publish' !== $product->get_status( 'edit' ) ) {
 			return false;
 		}
-		if ( $product->get_image_id( 'edit' ) ) {
+		if ( self::usable_image( $product->get_image_id( 'edit' ) ) ) {
 			return false;
 		}
 		$product->set_status( self::HELD_STATUS );
@@ -137,7 +160,7 @@ class Hayak_Product_Guard {
 			return false;
 		}
 		$image_id = $product->get_image_id( 'edit' );
-		if ( ! $image_id || ! wp_attachment_is_image( $image_id ) ) {
+		if ( ! $image_id || ! wp_attachment_is_image( $image_id ) || ! self::usable_image( $image_id ) ) {
 			return false;
 		}
 		$product->delete_meta_data( self::META_HELD );
@@ -230,7 +253,7 @@ class Hayak_Product_Guard {
 			return;
 		}
 		echo '<div class="notice notice-warning"><p dir="rtl">'
-			. esc_html__( 'هذا المنتج محجوز كمسودة لأنه بدون صورة رئيسية. أضف صورة المنتج وسيُنشر تلقائيًا.', 'hayak-core' )
+			. esc_html__( 'هذا المنتج محجوز كمسودة لأنه بدون صورة رئيسية صالحة (مفقودة أو أصغر من 100 بكسل). أضف صورة المنتج وسيُنشر تلقائيًا.', 'hayak-core' )
 			. '</p></div>';
 	}
 }
