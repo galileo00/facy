@@ -177,3 +177,13 @@ Data: `seo/data/2026-09-24-catalogue-pass-6-text.json`.
   for the product type itself. Wording cannot change it without misdescribing
   the product. The misleading medical claims in titles were removed.
 - **56627** (body-shaping shorts) stays a draft until it has a real image.
+
+## Follow-up, 25 Sep 2026
+
+Once the vision quota reset, every gallery image of the 43 "next image" products was judged. The 5 products with a single image were not.
+
+- 31 now send a verified clean image.
+- 7 have promotional text on every image (53317, 53931, 54007, 54263, 56679, 56851, 57869). Every image of these is rejected, so the daily review will list them as needing a real photo.
+- Together with the 5 single-image products (53794, 54339, 56445, 56471, 56627) and the 9 above, 21 products need a real photo.
+
+All 38 were saved again so Google for WooCommerce resends them.
