@@ -187,3 +187,12 @@ Once the vision quota reset, every gallery image of the 43 "next image" products
 - Together with the 5 single-image products (53794, 54339, 56445, 56471, 56627) and the 9 above, 21 products need a real photo.
 
 All 38 were saved again so Google for WooCommerce resends them.
+
+## Permanently out of Merchant Center (owner's decision, 25 Sep 2026)
+
+Two SKUs are listed in option `hayak_core_merchant_feed_never`:
+
+- SA010403LMX2099 (41395, "شبيه الأيفون 17 برو ماكس مينى")
+- SA12 (53755, "ضمان إضافي 12 شهر")
+
+On every save, `Hayak_Merchant_Feed::keep_out` sets GLA's `dont-sync-and-show` visibility on any product carrying one of these SKUs. That includes a later Taager re-import under a new product ID. Both products were saved, and GLA queued their deletion from Merchant Center. To keep another SKU out for good, add it to the option.

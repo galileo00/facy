@@ -41,6 +41,9 @@ class Hayak_Merchant_Feed {
 	const OPTION_LAST   = 'hayak_core_merchant_feed_last_review';
 	const OPTION_ASKED  = 'hayak_core_merchant_feed_refresh_at';
 
+	/** SKUs never sent to Merchant Center, whatever product carries them (a re-import too). */
+	const OPTION_NEVER = 'hayak_core_merchant_feed_never';
+
 	/** Google re-reads a changed image within three days. */
 	const SETTLE = 3 * DAY_IN_SECONDS;
 
@@ -91,7 +94,23 @@ class Hayak_Merchant_Feed {
 		add_filter( 'woocommerce_gla_product_attribute_values', array( __CLASS__, 'attributes' ), 10, 2 );
 		add_filter( 'woocommerce_gla_product_attribute_value_description', array( __CLASS__, 'description' ), 10, 2 );
 		add_action( self::REVIEW_HOOK, array( __CLASS__, 'review' ) );
+		add_action( 'woocommerce_before_product_object_save', array( __CLASS__, 'keep_out' ), 30 );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
+	}
+
+	/** A product whose SKU the owner has ruled out of Google stays out, on every save. */
+	public static function keep_out( $product ) {
+		if ( ! $product instanceof WC_Product ) {
+			return;
+		}
+		$never = get_option( self::OPTION_NEVER, array() );
+		$sku   = (string) $product->get_sku( 'edit' );
+		if ( '' === $sku || ! is_array( $never ) || ! in_array( $sku, $never, true ) ) {
+			return;
+		}
+		if ( 'dont-sync-and-show' !== $product->get_meta( '_wc_gla_visibility' ) ) {
+			$product->update_meta_data( '_wc_gla_visibility', 'dont-sync-and-show' );
+		}
 	}
 
 	public static function schedule() {
