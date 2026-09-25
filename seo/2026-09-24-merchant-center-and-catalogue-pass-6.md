@@ -190,9 +190,11 @@ All 38 were saved again so Google for WooCommerce resends them.
 
 ## Permanently out of Merchant Center (owner's decision, 25 Sep 2026)
 
-Two SKUs are listed in option `hayak_core_merchant_feed_never`:
+Four SKUs are listed in option `hayak_core_merchant_feed_never`:
 
 - SA010403LMX2099 (41395, "شبيه الأيفون 17 برو ماكس مينى")
 - SA12 (53755, "ضمان إضافي 12 شهر")
+- SA06 (53757, "ضمان إضافي 6 شهور"), added the same day
+- SA18 (53753, "ضمان إضافي 18 شهر"), added the same day
 
 On every save, `Hayak_Merchant_Feed::keep_out` sets GLA's `dont-sync-and-show` visibility on any product carrying one of these SKUs. That includes a later Taager re-import under a new product ID. Both products were saved, and GLA queued their deletion from Merchant Center. To keep another SKU out for good, add it to the option.
