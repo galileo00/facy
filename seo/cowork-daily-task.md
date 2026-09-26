@@ -41,7 +41,7 @@
   - القائمة دي بتتكتب كاملة في التقرير كل يوم، حتى لو اشتغلت على المنتج قبل كده (_hayak_mc_handled بيمنع إنك تعيد نفس الشغل بس، مش بيشيل المنتج من التقرير).
 - اعمل عدد لـ6F27TMRe_gla_merchant_issues حسب issue و severity، وقارنه بـmc_counts بتاع امبارح.
 - اشتغل بس على المنتجات المنشورة المتاحة اللي حالتها DISAPPROVED، واللي مش متسجل عليها meta اسمه _hayak_mc_handled فيه نفس كود المشكلة. بعد ما تتعامل مع أي منتج، ضيف الكود للـmeta ده.
-- **صورة عليها كلام أو صغيرة (image_unwanted_overlays / image_too_small):** اختار لجوجل صورة نظيفة من صور المنتج نفسه. صورة الموقع (الـfeatured) ما تتغيرش.
+- **صورة عليها كلام أو صغيرة (image_unwanted_overlays / image_too_small):** اختار صورة نظيفة من صور المنتج نفسه، وخليها الصورة الرئيسية في الموقع نفسه (الـfeatured). الصورة اللي عليها كلام تنزل آخر المعرض، والصورة الصغيرة اللي ضلعها أقل من 250 بكسل تتشال من المنتج.
   1. هات من 6F27TMRe_postmeta قيم _thumbnail_id و _product_image_gallery و _hayak_feed_image و _hayak_feed_rejected و _hayak_feed_image_at.
      - لو _hayak_feed_image_at من أقل من 3 أيام، استنى: جوجل لسه ما راجعش الصورة اللي اتبعتت.
   2. الصورة اللي بتتبعت دلوقتي (_hayak_feed_image، ولو فاضي الـfeatured) اعتبرها مرفوضة، لأن جوجل رفضها.
@@ -49,17 +49,18 @@
   4. افحص الصور واحدة واحدة بالترتيب بـ mwai_vision، على الرابط https://hayak.store/wp-content/uploads/<file>، بالرسالة دي بالظبط:
      "Google Merchant Center disapproves a product's main image if ANYTHING was added on top of the photo: promotional or marketing text in any language, prices, discount or free-delivery badges, warranty seals, logo stamps, watermarks, stickers, arrows or callouts, icons, frames or borders, or if it is a collage or infographic. Text physically printed on the product itself or on its retail packaging is allowed. Inspect the image carefully, including all four corners and edges, and answer ONLY with JSON: {\"clean\": true|false, \"found\": \"what you found\"}."
      - وقف عند أول صورة نظيفة ضلعها الأصغر 500 بكسل أو أكتر. لو مفيش، خد أول صورة نظيفة ضلعها 250 أو أكتر.
-  5. سجّل النتيجة بـ wp_update_post_meta:
-     - _hayak_feed_image = الصورة النظيفة.
+  5. طبّق النتيجة على المنتج:
+     - wp_set_featured_image = الصورة النظيفة.
+     - _product_image_gallery (بـ wp_update_post_meta) = باقي الصور بالترتيب، من غير الصورة النظيفة، والصورة الرئيسية القديمة في الآخر، ومن غير أي صورة ضلعها أقل من 250 بكسل.
      - _hayak_feed_rejected = القائمة القديمة + الصورة المرفوضة + أي صورة لقيتها عليها كلام (array أرقام).
-     - _hayak_feed_image_at = الوقت الحالي (unix).
+     - _hayak_feed_image_at = الوقت الحالي (unix). ما تكتبش _hayak_feed_image.
      بعدها احفظ المنتج بـ wc_update_product بـ status = publish، علشان يتبعت لجوجل تاني.
   6. لو كل الصور عليها كلام، أو المنتج صورة واحدة بس: حط الصور كلها في _hayak_feed_rejected، وما تحطش _hayak_feed_image، واكتبه في قائمة "محتاج صورة حقيقية".
   7. **حدود الاستهلاك:**
      - أقصى حاجة 15 منتج و60 فحص vision في التشغيلة.
      - لو mwai_vision رجع 429 أو quota، وقّف الفحص خالص وكمّل بكرة. ما تحاولش تاني النهارده.
      - لو رجع timeout أو 503، جرّب مرة كمان بس.
-  - كمان المراجعة اليومية Hayak_Merchant_Feed بتجرب الصورة اللي بعدها لو جوجل فضل رافض. أي منتج في option اسمه hayak_core_merchant_feed_report ضيفه لقائمة "محتاج صورة حقيقية".
+  - كمان المراجعة اليومية Hayak_Merchant_Feed بتجرب الصورة اللي بعدها لو جوجل فضل رافض، وبتخليها الصورة الرئيسية في الموقع. أي منتج في option اسمه hayak_core_merchant_feed_report ضيفه لقائمة "محتاج صورة حقيقية".
 - **Guns and Parts:**
   - لو أداة اسمها "مسدس" (حرارة، مسامير، تدليك، رش/فوم، سيليكون، تسعير): الموقع بيغير اسمها لوحده في الفيد. قول لصاحب المتجر يدوس "Request review" في المرشنت سنتر.
   - لو لعبة شكل سلاح، أو منتج بيشتغل بطلقات/بارود، أو مجسم سلاح: ما تغيرش الكلام علشان تعدّيه من سياسة جوجل. حط _wc_gla_visibility = dont-sync-and-show واحفظ المنتج.

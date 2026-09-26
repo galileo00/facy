@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Hayak Core
  * Description:       Hayak Store's own integrations in one place: Elementor order forms -> WooCommerce orders, the product-page quick order form, purchase dataLayer for the GTM pixels, the Taager webhook watchdog, the no-image product guard, product text that is never printed twice, new products filed in their category, a Merchant Center feed with clean main images and tool names Google does not read as weapons, home-page best sellers and offers, redirects for retired URLs, always-fresh sitemaps, noindex ad landing pages, and the storefront polish.
- * Version:           2.8.1
+ * Version:           2.9.0
  * Author:            Hayak Store
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HAYAK_CORE_VERSION', '2.8.1' );
+define( 'HAYAK_CORE_VERSION', '2.9.0' );
 define( 'HAYAK_CORE_PATH', plugin_dir_path( __FILE__ ) );
 
 require_once HAYAK_CORE_PATH . 'includes/class-hayak-fields.php';

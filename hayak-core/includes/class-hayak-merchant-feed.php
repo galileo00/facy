@@ -6,16 +6,20 @@
  * price, "free delivery" or a warranty seal burned into the photo. The storefront
  * can show it; Merchant Center disapproves the item for "Promotional overlay on
  * image" (63 in-stock products on 24 Sep 2026). The feed therefore picks its own
- * main image from the product's own images, and the storefront is left alone:
- *   - META_IMAGE is the attachment sent as the main image;
- *   - META_REJECTED lists attachments never to send as the main image, and they
- *     are also left out of the additional images;
+ * main image from the product's own images, and the store uses it too: the clean
+ * image becomes the product's featured image on the website (the owner's call,
+ * 26 Sep 2026), the creative stays in the gallery after it, and an image too
+ * small to use is removed from the product.
+ *   - META_REJECTED lists attachments never to use as the main image; they are
+ *     also left out of the feed's additional images;
  *   - a daily review reads Google's own verdict (the issues Google for
  *     WooCommerce fetches from Merchant Center). A product still disapproved for
  *     its image SETTLE after its current image was sent gets that image
- *     rejected and the next one sent, so new imports are handled with Google as
- *     the judge. A product with no acceptable image left is listed in
- *     OPTION_REPORT: it needs a real photo.
+ *     rejected and the next one made the featured image, so new imports are
+ *     handled with Google as the judge. A product with no acceptable image left
+ *     is listed in OPTION_REPORT: it needs a real photo.
+ *   - META_IMAGE (a feed-only main image, before 2.9.0) is moved onto the
+ *     website once, by MOVE_HOOK.
  *
  * Words. Arabic names many tools "مسدس" (pistol): heat gun, nail gun, massage gun,
  * foam sprayer, tagging gun. Google reads the word and disapproves the item as
@@ -48,6 +52,10 @@ class Hayak_Merchant_Feed {
 	const OPTION_REPORT = 'hayak_core_merchant_feed_report';
 	const OPTION_LAST   = 'hayak_core_merchant_feed_last_review';
 	const OPTION_ASKED  = 'hayak_core_merchant_feed_refresh_at';
+
+	/** Moves the feed-only main images of earlier versions onto the website, in batches. */
+	const MOVE_HOOK    = 'hayak_core_merchant_feed_move_images';
+	const OPTION_MOVED = 'hayak_core_merchant_feed_images_moved';
 
 	/** When the daily review last re-sent a product whose page Google could not load. */
 	const META_RESENT_AT = '_hayak_feed_resent_at';
@@ -113,7 +121,66 @@ class Hayak_Merchant_Feed {
 		add_action( self::REVIEW_HOOK, array( __CLASS__, 'review' ) );
 		add_action( 'woocommerce_before_product_object_save', array( __CLASS__, 'keep_out' ), 30 );
 		add_filter( 'woocommerce_gla_force_product_resync', array( __CLASS__, 'force_resync' ), 10, 2 );
+		add_action( self::MOVE_HOOK, array( __CLASS__, 'move_feed_images' ) );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
+	}
+
+	/**
+	 * Make a clean image the product's featured image on the website. The old
+	 * featured image moves to the end of the gallery, unless it is too small to
+	 * use; a rejected gallery image too small to use is removed as well. Saved
+	 * through WooCommerce, so Google for WooCommerce sends the change.
+	 */
+	public static function make_main( WC_Product $product, $image_id ) {
+		$image_id = (int) $image_id;
+		$old      = (int) $product->get_image_id();
+		$rejected = self::rejected( $product );
+		$gallery  = array();
+		foreach ( array_map( 'intval', $product->get_gallery_image_ids() ) as $id ) {
+			if ( $id === $image_id || $id === $old ) {
+				continue;
+			}
+			if ( in_array( $id, $rejected, true ) && self::short_side( $id ) < self::MIN_SIDE ) {
+				continue;
+			}
+			$gallery[] = $id;
+		}
+		if ( $old && $old !== $image_id && self::short_side( $old ) >= self::MIN_SIDE ) {
+			$gallery[] = $old;
+		}
+		if ( $image_id ) {
+			$product->set_image_id( $image_id );
+		}
+		$product->set_gallery_image_ids( array_values( array_unique( $gallery ) ) );
+		$product->delete_meta_data( self::META_IMAGE );
+		$product->save();
+	}
+
+	/** Once: every feed-only main image of an earlier version becomes the featured image. */
+	public static function move_feed_images() {
+		global $wpdb;
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT m.post_id FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id
+				 WHERE m.meta_key = %s AND p.post_type = 'product' ORDER BY m.post_id LIMIT 25",
+				self::META_IMAGE
+			)
+		);
+		foreach ( $ids as $id ) {
+			$product = wc_get_product( (int) $id );
+			if ( ! $product instanceof WC_Product ) {
+				delete_post_meta( (int) $id, self::META_IMAGE );
+				continue;
+			}
+			$chosen = (int) $product->get_meta( self::META_IMAGE );
+			$clean  = in_array( $chosen, self::own_images( $product ), true ) && ! in_array( $chosen, self::rejected( $product ), true );
+			self::make_main( $product, $clean ? $chosen : 0 );
+		}
+		if ( count( $ids ) < 25 ) {
+			update_option( self::OPTION_MOVED, time(), false );
+		} else {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::MOVE_HOOK );
+		}
 	}
 
 	/** Google for WooCommerce: send a product the review just re-sent, even unchanged. */
@@ -145,11 +212,15 @@ class Hayak_Merchant_Feed {
 		if ( ! wp_next_scheduled( self::REVIEW_HOOK ) ) {
 			wp_schedule_event( time() + 3 * HOUR_IN_SECONDS, 'daily', self::REVIEW_HOOK );
 		}
+		if ( ! get_option( self::OPTION_MOVED ) && ! wp_next_scheduled( self::MOVE_HOOK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::MOVE_HOOK );
+		}
 	}
 
 	public static function unschedule() {
 		wp_clear_scheduled_hook( self::REVIEW_HOOK );
 		wp_clear_scheduled_hook( self::REVIEW_HOOK, array( true ) );
+		wp_clear_scheduled_hook( self::MOVE_HOOK );
 	}
 
 	/**
@@ -314,8 +385,15 @@ class Hayak_Merchant_Feed {
 		if ( ! $chosen && ! $rejected ) {
 			return array();
 		}
-		$own  = self::own_images( $product );
-		$main = ( $chosen && in_array( $chosen, $own, true ) && ! in_array( $chosen, $rejected, true ) ) ? $chosen : self::next_candidate( $product, $rejected );
+		$own      = self::own_images( $product );
+		$featured = (int) $product->get_image_id();
+		if ( $chosen && in_array( $chosen, $own, true ) && ! in_array( $chosen, $rejected, true ) ) {
+			$main = $chosen;
+		} elseif ( $featured && ! in_array( $featured, $rejected, true ) && self::short_side( $featured ) >= self::MIN_SIDE ) {
+			$main = $featured;
+		} else {
+			$main = self::next_candidate( $product, $rejected );
+		}
 		if ( ! $main ) {
 			return array();
 		}
@@ -392,7 +470,7 @@ class Hayak_Merchant_Feed {
 		update_option( self::OPTION_LAST, array( 'time' => time() ) + $result, false );
 	}
 
-	/** Reject the image Google still disapproves and send the next one. */
+	/** Reject the image Google still disapproves and make the next one the featured image. */
 	public static function apply_verdicts( $asked_at = 0 ) {
 		global $wpdb;
 		$table = $wpdb->prefix . 'gla_merchant_issues';
@@ -433,18 +511,17 @@ class Hayak_Merchant_Feed {
 			$product->update_meta_data( self::META_REJECTED, array_values( array_unique( $rejected ) ) );
 			$product->update_meta_data( self::META_IMAGE_AT, $now );
 			if ( $next ) {
-				$product->update_meta_data( self::META_IMAGE, $next );
+				self::make_main( $product, $next );
 				$done['switched'][] = $product->get_id();
 				unset( $report[ $product->get_id() ] );
 			} else {
 				$product->delete_meta_data( self::META_IMAGE );
+				$product->save_meta_data();
 				$done['exhausted'][]          = $product->get_id();
 				$report[ $product->get_id() ] = $now;
 			}
-			$product->save_meta_data();
 		}
 		update_option( self::OPTION_REPORT, $report, false );
-		self::resync( $done['switched'] );
 		$done['resent'] = self::resend_unavailable( $table, $now );
 		return $done;
 	}
