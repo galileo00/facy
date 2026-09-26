@@ -55,6 +55,9 @@ class Hayak_Merchant_Feed {
 	/** How long Google for WooCommerce must not skip a re-sent product as unchanged. */
 	const RESEND_WINDOW = 6 * HOUR_IN_SECONDS;
 
+	/** Google could not fetch the page or the image: the item is sent again, unchanged. */
+	const FETCH_CODES = array( 'landing_page_error', 'image_link_internal_error', 'image_link_broken' );
+
 	/** SKUs never sent to Merchant Center, whatever product carries them (a re-import too). */
 	const OPTION_NEVER = 'hayak_core_merchant_feed_never';
 
@@ -447,13 +450,15 @@ class Hayak_Merchant_Feed {
 	}
 
 	/**
-	 * Send again each product whose page Google could not load, so Merchant Center
-	 * crawls it again: published, in stock and synced only, once per SETTLE.
+	 * Send again each product whose page or image Google could not fetch, so
+	 * Merchant Center fetches it again: published, in stock and synced only, once
+	 * per SETTLE.
 	 */
 	protected static function resend_unavailable( $table, $now ) {
 		global $wpdb;
+		$codes = implode( ',', array_fill( 0, count( self::FETCH_CODES ), '%s' ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$ids    = $wpdb->get_col( "SELECT DISTINCT product_id FROM {$table} WHERE severity = 'DISAPPROVED' AND code = 'landing_page_error'" );
+		$ids    = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT product_id FROM {$table} WHERE severity = 'DISAPPROVED' AND code IN ({$codes})", self::FETCH_CODES ) );
 		$resend = array();
 		foreach ( $ids as $id ) {
 			$product = wc_get_product( (int) $id );
