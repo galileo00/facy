@@ -75,6 +75,11 @@ class Hayak_Product_Category {
 		if ( function_exists( 'wc_delete_product_transients' ) ) {
 			wc_delete_product_transients( $post_id );
 		}
+		// Setting terms is not a product save, so Google for WooCommerce would not
+		// send the new category (the product type in Merchant Center) on its own.
+		if ( class_exists( 'Hayak_Merchant_Feed' ) ) {
+			Hayak_Merchant_Feed::resync( array( $post_id ) );
+		}
 		return $category;
 	}
 

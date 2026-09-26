@@ -25,6 +25,14 @@
  * description the bare word and the trigger too. Nothing else is: a toy water
  * gun or a product that fires powder loads is not reworded (the latter is kept
  * out of the feed with Google for WooCommerce's "dont-sync-and-show" visibility).
+ *
+ * Pages Google could not load. When Merchant Center's crawler fails to load a
+ * product page it disapproves the item as "Product page unavailable" and does not
+ * look again until the item is sent again. Google for WooCommerce never sends a
+ * product whose data has not changed, so a plain save does not help. The daily
+ * review therefore re-sends a published, in-stock product Google still flags,
+ * once per SETTLE, and Google for WooCommerce is told not to skip it (15 items,
+ * the store's best-selling laptop among them, on 26 Sep 2026).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -40,6 +48,12 @@ class Hayak_Merchant_Feed {
 	const OPTION_REPORT = 'hayak_core_merchant_feed_report';
 	const OPTION_LAST   = 'hayak_core_merchant_feed_last_review';
 	const OPTION_ASKED  = 'hayak_core_merchant_feed_refresh_at';
+
+	/** When the daily review last re-sent a product whose page Google could not load. */
+	const META_RESENT_AT = '_hayak_feed_resent_at';
+
+	/** How long Google for WooCommerce must not skip a re-sent product as unchanged. */
+	const RESEND_WINDOW = 6 * HOUR_IN_SECONDS;
 
 	/** SKUs never sent to Merchant Center, whatever product carries them (a re-import too). */
 	const OPTION_NEVER = 'hayak_core_merchant_feed_never';
@@ -95,7 +109,18 @@ class Hayak_Merchant_Feed {
 		add_filter( 'woocommerce_gla_product_attribute_value_description', array( __CLASS__, 'description' ), 10, 2 );
 		add_action( self::REVIEW_HOOK, array( __CLASS__, 'review' ) );
 		add_action( 'woocommerce_before_product_object_save', array( __CLASS__, 'keep_out' ), 30 );
+		add_filter( 'woocommerce_gla_force_product_resync', array( __CLASS__, 'force_resync' ), 10, 2 );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
+	}
+
+	/** Google for WooCommerce: send a product the review just re-sent, even unchanged. */
+	public static function force_resync( $force, $product ) {
+		if ( $force || ! $product instanceof WC_Product ) {
+			return $force;
+		}
+		$id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
+		$at = (int) get_post_meta( $id, self::META_RESENT_AT, true );
+		return $at > 0 && time() - $at < self::RESEND_WINDOW;
 	}
 
 	/** A product whose SKU the owner has ruled out of Google stays out, on every save. */
@@ -417,7 +442,35 @@ class Hayak_Merchant_Feed {
 		}
 		update_option( self::OPTION_REPORT, $report, false );
 		self::resync( $done['switched'] );
+		$done['resent'] = self::resend_unavailable( $table, $now );
 		return $done;
+	}
+
+	/**
+	 * Send again each product whose page Google could not load, so Merchant Center
+	 * crawls it again: published, in stock and synced only, once per SETTLE.
+	 */
+	protected static function resend_unavailable( $table, $now ) {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$ids    = $wpdb->get_col( "SELECT DISTINCT product_id FROM {$table} WHERE severity = 'DISAPPROVED' AND code = 'landing_page_error'" );
+		$resend = array();
+		foreach ( $ids as $id ) {
+			$product = wc_get_product( (int) $id );
+			if ( ! $product instanceof WC_Product || $product->is_type( 'variation' ) || 'publish' !== $product->get_status()
+				|| ! $product->is_in_stock() || 'dont-sync-and-show' === $product->get_meta( '_wc_gla_visibility' ) ) {
+				continue;
+			}
+			$at = (int) $product->get_meta( self::META_RESENT_AT );
+			if ( $at && $now - $at < self::SETTLE ) {
+				continue;
+			}
+			$product->update_meta_data( self::META_RESENT_AT, $now );
+			$product->save_meta_data();
+			$resend[] = $product->get_id();
+		}
+		self::resync( $resend );
+		return $resend;
 	}
 
 	/** Ask Google for WooCommerce to fetch product statuses from Merchant Center now. */

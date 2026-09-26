@@ -198,3 +198,30 @@ Four SKUs are listed in option `hayak_core_merchant_feed_never`:
 - SA18 (53753, "ضمان إضافي 18 شهر"), added the same day
 
 On every save, `Hayak_Merchant_Feed::keep_out` sets GLA's `dont-sync-and-show` visibility on any product carrying one of these SKUs. That includes a later Taager re-import under a new product ID. Both products were saved, and GLA queued their deletion from Merchant Center. To keep another SKU out for good, add it to the option.
+
+## Follow-up, 26 Sep 2026: the Google Ads product report
+
+The owner exported the PMax product report for 1–26 Sep (2,684 rows). A read-only check found four things; the links themselves are not changing.
+
+- **Links.** Every published product's slug matches the four catalogue backups from 18–21 Sep. Nothing on the site rewrites a slug. The URL-recovery redirects fire on 404s only. Google for WooCommerce sends the plain permalink, and title and price in the report match the site for 2,120 of 2,161 `gla_` items.
+- **"Product page unavailable" (15 products, 16 rows).** Among them are the laptop 52867 (the top item: 315 clicks, 5 conversions) and 43002. Google's shopping crawler failed to load the pages. The pages are fine:
+  - they are published and in stock;
+  - there is no noindex or redirect on them;
+  - Wordfence blocked no Google IP in 31 days;
+  - Search Console fetched 10 of them successfully on 25 Sep.
+
+  13 of the 15 appeared in the 26 Sep status refresh. The failure left no trace in the database, so the reply Google got can only be read in the host's logs.
+- **A second product source.** "Found by Google" had built 452 items from the product pages: ids are lowercased SKUs, titles are the page titles. 274 of them duplicated `gla_` items. These items ignored the store's exclusions: SA18 was shown as eligible, and deleted products appeared under another product's title. The owner hid them in Merchant Center.
+- **Legacy English copies.** 103 products created before the 17 Sep Merchant API cutover still had a copy in the source "Google for WooCommerce (en/SA)". Google for WooCommerce can no longer update or delete these copies, so they kept old prices (gla_12979 at 918 against 325). gla_41395 was among them. The owner deleted that source. The Arabic source (2,135 products) is the only one left.
+- **Edits that bypass Google for WooCommerce.** Google for WooCommerce only reacts to a WooCommerce product save. Filing a category with `wp_set_object_terms`, or editing through `wp_update_post`, never reached Merchant Center. 7 products had edits waiting.
+
+Done:
+
+- The 15 unavailable products and the 7 with pending edits were sent again. Their sync hash was cleared so the unchanged-data skip could not drop them. All 22 were sent on 26 Sep at 19:45–19:46 UTC, with no errors.
+- hayak-core 2.8.1 makes both fixes permanent:
+  - The daily Merchant feed review re-sends each published, in-stock product still flagged `landing_page_error`, once per 3 days. It records `_hayak_feed_resent_at` and forces Google for WooCommerce past its unchanged-data skip for 6 hours (`woocommerce_gla_force_product_resync`).
+  - The category module asks Google for WooCommerce to send a product it files.
+- The Cowork daily task:
+  - saves products only through WooCommerce;
+  - no longer asks for a plain re-save on "Product page unavailable";
+  - lists a product still unavailable after a re-send, so the owner can ask the host for the server's reply to Storebot-Google.
