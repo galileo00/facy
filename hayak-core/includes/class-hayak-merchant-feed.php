@@ -21,13 +21,12 @@
  *   - META_IMAGE (a feed-only main image, before 2.9.0) is moved onto the
  *     website once, by MOVE_HOOK.
  *
- * Weapons. The owner keeps anything that reads as a weapon out of Merchant Center
- * (26 Sep 2026): a product whose title or description names a gun, pistol,
- * rifle, weapon or ammunition (WEAPONS), and a product Google disapproves as
- * "Guns and Parts", gets Google for WooCommerce's "dont-sync-and-show"
- * visibility. It stays on the website.
+ * Weapons. A product Google disapproves as "Guns and Parts" is taken out of
+ * Merchant Center by the daily review (Google for WooCommerce's
+ * "dont-sync-and-show" visibility), the owner's call on 26 Sep 2026. It stays
+ * on the website. A product Google approves is left alone, whatever its words.
  *
- * Words (before 26 Sep 2026). Arabic names many tools "مسدس" (pistol): heat gun, nail gun, massage gun,
+ * Words. Arabic names many tools "مسدس" (pistol): heat gun, nail gun, massage gun,
  * foam sprayer, tagging gun. Google reads the word and disapproves the item as
  * "Guns and Parts" (15 on 24 Sep 2026). The storefront keeps the words shoppers
  * search with; the feed names the tool for what it is ("مسدس حرارة" is sent as
@@ -121,12 +120,6 @@ class Hayak_Merchant_Feed {
 	/** A product that fires powder loads is never reworded. */
 	const POWDER = '/بارود|طلقات|ذخير/u';
 
-	/**
-	 * Words that make a product a weapon for Merchant Center. "بندقي" alone is a
-	 * colour (hazel), so only the rifle forms count.
-	 */
-	const WEAPONS = '/مسدس|بندقي[ةه]|بنادق|سلاح|أسلحة|اسلحة|خرطوش|خراطيش|ذخير|طلقات|بارود|(?<![a-z])(?:guns?|pistols?|rifles?|weapons?)(?![a-z])/iu';
-
 	public static function init() {
 		add_filter( 'woocommerce_gla_product_attribute_values', array( __CLASS__, 'attributes' ), 10, 2 );
 		add_filter( 'woocommerce_gla_product_attribute_value_description', array( __CLASS__, 'description' ), 10, 2 );
@@ -205,25 +198,19 @@ class Hayak_Merchant_Feed {
 		return $at > 0 && time() - $at < self::RESEND_WINDOW;
 	}
 
-	/** A product the owner has ruled out of Google (by SKU, or a weapon) stays out, on every save. */
+	/** A product whose SKU the owner has ruled out of Google stays out, on every save. */
 	public static function keep_out( $product ) {
 		if ( ! $product instanceof WC_Product ) {
 			return;
 		}
-		$never  = get_option( self::OPTION_NEVER, array() );
-		$sku    = (string) $product->get_sku( 'edit' );
-		$by_sku = '' !== $sku && is_array( $never ) && in_array( $sku, $never, true );
-		if ( ! $by_sku && ! self::is_weapon( $product ) ) {
+		$never = get_option( self::OPTION_NEVER, array() );
+		$sku   = (string) $product->get_sku( 'edit' );
+		if ( '' === $sku || ! is_array( $never ) || ! in_array( $sku, $never, true ) ) {
 			return;
 		}
 		if ( 'dont-sync-and-show' !== $product->get_meta( '_wc_gla_visibility' ) ) {
 			$product->update_meta_data( '_wc_gla_visibility', 'dont-sync-and-show' );
 		}
-	}
-
-	/** Title or description names a weapon. */
-	public static function is_weapon( WC_Product $product ) {
-		return (bool) preg_match( self::WEAPONS, $product->get_name( 'edit' ) . ' ' . $product->get_description( 'edit' ) );
 	}
 
 	public static function schedule() {
@@ -542,7 +529,7 @@ class Hayak_Merchant_Feed {
 		update_option( self::OPTION_REPORT, $report, false );
 		$done['resent'] = self::resend_unavailable( $table, $now );
 
-		// Google reads a weapon where the words do not (a pistol-grip tool in a photo): kept out too.
+		// Google disapproved it as a weapon: out of Merchant Center, still on the website.
 		$done['weapons'] = array();
 		foreach ( $wpdb->get_col( "SELECT DISTINCT product_id FROM {$table} WHERE code = 'guns_parts_policy_violation'" ) as $id ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$product = wc_get_product( (int) $id );

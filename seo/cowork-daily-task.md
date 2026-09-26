@@ -69,10 +69,10 @@
      - لو mwai_vision رجع 429 أو quota، وقّف الفحص خالص وكمّل بكرة. ما تحاولش تاني النهارده.
      - لو رجع timeout أو 503، جرّب مرة كمان بس.
   - كمان المراجعة اليومية Hayak_Merchant_Feed بتجرب الصورة اللي بعدها لو جوجل فضل رافض، وبتخليها الصورة الرئيسية في الموقع. أي منتج في option اسمه hayak_core_merchant_feed_report ضيفه لقائمة "محتاج صورة حقيقية".
-- **أسلحة ومسدسات (Guns and Parts):** أي منتج فيه سلاح أو مسدس بيتشال من المرشنت سنتر بالكامل، ويفضل في الموقع عادي.
-  - الإضافة (Hayak_Merchant_Feed) بتعمل ده لوحدها: أي منتج في عنوانه أو وصفه مسدس أو بندقية أو سلاح أو خرطوش أو ذخيرة أو طلقات أو بارود أو gun/pistol/rifle، بياخد _wc_gla_visibility = dont-sync-and-show مع كل حفظ. وأي منتج جوجل رفضه بـ guns_parts_policy_violation بتشيله المراجعة اليومية حتى لو كلامه مفيهوش سلاح.
-  - إنت تتأكد بس: هات المنتجات المنشورة اللي عنوانها أو وصفها فيه الكلمات دي و _wc_gla_visibility بتاعها مش dont-sync-and-show، أو اللي عليها guns_parts_policy_violation. أي واحد منهم حط له _wc_gla_visibility = dont-sync-and-show واحفظه بـ wc_update_product بـ status = publish.
-  - ما تغيرش كلام المنتج علشان يعدّي من جوجل. وكلمة "بندقي" لوحدها لون (بني بندقي)، مش سلاح.
+- **أسلحة (Guns and Parts):** المنتج اللي جوجل رفضه بـ guns_parts_policy_violation بس هو اللي يتشال من المرشنت سنتر، ويفضل في الموقع عادي. أي منتج جوجل قابله يفضل زي ما هو حتى لو في اسمه مسدس (مسدس حرارة، مسدس مسامير...).
+  - المراجعة اليومية (Hayak_Merchant_Feed) بتعمل ده لوحدها: بتحط _wc_gla_visibility = dont-sync-and-show للمنتج المرفوض كسلاح وبتحفظه.
+  - إنت تتأكد بس: هات المنتجات اللي عليها guns_parts_policy_violation و _wc_gla_visibility بتاعها مش dont-sync-and-show. حط لكل واحد dont-sync-and-show واحفظه بـ wc_update_product بـ status = publish، واكتبه في التقرير.
+  - ما تشيلش منتج مقبول علشان كلمة في اسمه، وما تغيرش كلام المنتج علشان يعدّي.
 - **Inappropriate title / Vehicles / Adult:** غيّر العنوان لاسم المنتج الحقيقي من غير كلام مثير أو ادعاءات طبية، ومن غير ما تخبي المنتج بيعمل إيه.
 - **Personal hardships:** ما تعملش حاجة. ده منع للإعلانات المخصصة بس.
 - **Inappropriate image (attribute_violated_discovery_ads_policy):** المنتج بيظهر في الشوبنج بس، وممنوع من يوتيوب و Discover و Gmail اللي كامبين PMax بتستخدمهم. اعمل نفس خطوات "صورة عليها كلام" بالظبط، بس ضيف للرسالة بتاعة mwai_vision الجملة دي: "Also answer clean=false if the image focuses on bare skin or body parts, shows a before/after comparison, or looks shocking or sexual." ولو مفيش صورة تنفع، اكتبه في التقرير.
