@@ -527,7 +527,8 @@ class Hayak_Merchant_Feed {
 			}
 		}
 		update_option( self::OPTION_REPORT, $report, false );
-		$done['resent'] = self::resend_unavailable( $table, $now );
+		$done['resent']  = self::resend_unavailable( $table, $now );
+		$done['missing'] = self::send_missing();
 
 		// Google disapproved it as a weapon: out of Merchant Center, still on the website.
 		$done['weapons'] = array();
@@ -569,6 +570,33 @@ class Hayak_Merchant_Feed {
 		}
 		self::resync( $resend );
 		return $resend;
+	}
+
+	/**
+	 * Send every published, in-stock product that never reached Merchant Center.
+	 * A new import is saved several times before it is ready; each early attempt
+	 * fails ("Job item not found"), and after three failures Google for
+	 * WooCommerce stops that product's jobs for two hours, so the save that
+	 * publishes it is dropped (5 imports of 28 Sep 2026). Products created in the
+	 * last three hours are left to the normal sync.
+	 */
+	protected static function send_missing() {
+		global $wpdb;
+		$ids = array_map(
+			'intval',
+			$wpdb->get_col(
+				"SELECT p.ID FROM {$wpdb->posts} p
+				 JOIN {$wpdb->postmeta} s ON s.post_id = p.ID AND s.meta_key = '_stock_status' AND s.meta_value = 'instock'
+				 LEFT JOIN {$wpdb->postmeta} v ON v.post_id = p.ID AND v.meta_key = '_wc_gla_visibility'
+				 WHERE p.post_type = 'product' AND p.post_status = 'publish'
+				   AND p.post_date_gmt < UTC_TIMESTAMP() - INTERVAL 3 HOUR
+				   AND ( v.meta_value IS NULL OR v.meta_value <> 'dont-sync-and-show' )
+				   AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} g WHERE g.post_id = p.ID AND g.meta_key = '_wc_gla_google_ids' )
+				 ORDER BY p.ID DESC LIMIT 200"
+			)
+		);
+		self::resync( $ids );
+		return $ids;
 	}
 
 	/** Ask Google for WooCommerce to fetch product statuses from Merchant Center now. */

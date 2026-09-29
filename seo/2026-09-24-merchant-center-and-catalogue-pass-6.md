@@ -225,3 +225,29 @@ Done:
   - saves products only through WooCommerce;
   - no longer asks for a plain re-save on "Product page unavailable";
   - lists a product still unavailable after a re-send, so the owner can ask the host for the server's reply to Storebot-Google.
+
+## Check, 29 Sep 2026
+
+**Merchant Center.** Disapproved items compared with 24 Sep:
+
+| Issue | 24 Sep | 28 Sep |
+|---|---|---|
+| Promotional overlay | 63 | 17 |
+| Guns and Parts | 15 | 0 |
+| Inappropriate title | 6 | 0 |
+| Product page unavailable | 3 | 1 |
+| Image too small, Vehicles | 1 each | 0 |
+| Inappropriate image | 43 | 38 |
+| Personal hardships | 44 | 52 (the new health imports) |
+
+The 17 overlay items are the products whose every image carries text; they are left to the Cowork task.
+
+**New imports missing from Merchant Center.** 5 imports of 28 Sep were never sent: 59737, 59756, 59757, 59764 and 59765.
+
+- The importer saves a product several times before it is ready, and each early Google for WooCommerce job fails ("Job item not found").
+- After three failures for the same product within two hours, Google for WooCommerce stops that product's jobs, so the save that published it was dropped.
+- The 5 were saved again. The daily review now also sends every published, in-stock product that has no Merchant Center id and is more than three hours old.
+
+**Redirects.** Nothing has been trashed since 17 Sep. The oldest out-of-stock product (48063, out since 18 Sep 18:39) passed its 10 days after the last Taager run (28 Sep 10:47), so the first trashing, and the first redirect rules, come with the next run.
+
+**38801.** Still out of stock since 24 Sep, so it is trashed from 4 Oct. Taager 16363 (`SA03010100991`) is imported after that.
