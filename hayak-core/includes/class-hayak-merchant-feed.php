@@ -471,7 +471,15 @@ class Hayak_Merchant_Feed {
 			}
 			return;
 		}
-		$result = self::apply_verdicts( (int) get_option( self::OPTION_ASKED, 0 ) );
+		$asked  = (int) get_option( self::OPTION_ASKED, 0 );
+		$result = self::apply_verdicts( $asked );
+		// Google for WooCommerce's status fetch runs on its own queue and can take
+		// hours (29 Sep 2026: asked 16:15, fetched 22:22). Wait for it, hourly, for
+		// up to a day, rather than skip the day's review.
+		if ( 'statuses not refreshed' === ( $result['skipped'] ?? '' ) && time() - $asked < DAY_IN_SECONDS ) {
+			wp_schedule_single_event( time() + HOUR_IN_SECONDS, self::REVIEW_HOOK, array( true ) );
+			$result['retry'] = time() + HOUR_IN_SECONDS;
+		}
 		update_option( self::OPTION_LAST, array( 'time' => time() ) + $result, false );
 	}
 
