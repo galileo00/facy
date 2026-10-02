@@ -19,26 +19,29 @@
  * Where the subcategory comes from: Taager's catalogue (data/taager-catalog.json,
  * Taager product id => Taager category id, built from the catalogue export the
  * owner provides; OPTION_CATALOG holds additions made since, which win). A
- * product's Taager id is in its Taager URL, which the sync plugin
- * records in its report (option hts_report, read only). Both ids are kept on the
- * product (META_TAAGER_ID, META_TAAGER_CAT). A product Taager has not been seen
- * in, or whose SKU is not a Taager one, is left where it is and listed in the
- * sweep result (META_UNRESOLVED) for the daily task to resolve by reading the
- * Taager product page.
+ * product's Taager id is in its Taager URL, which the sync plugin records in
+ * its report (option hts_report, read only). Both ids are kept on the product
+ * (META_TAAGER_ID, META_TAAGER_CAT). A product Taager has not been seen in, or
+ * whose SKU is not a Taager one, is left where it is and listed in the sweep
+ * result (META_UNRESOLVED) for the daily task to resolve by reading the Taager
+ * product page.
  *
- * The store tree: ROOTS are the top-level categories; SUBS the subcategories
- * (existing ones by id, new ones created by name under their root). LEAVES maps
- * every Taager category to a root and, where the store has one, a subcategory.
- * KEYWORDS refine within a root from the product title, for the few store
- * subcategories Taager does not separate (fans, coolers and heaters all sit in
- * Taager's "air care"). A subcategory the product already has under the right
- * root is kept when the map gives none. META_LOCK on a product keeps its
- * categories as they are, apart from the one-root rule.
+ * The map (option OPTION_MAP, seeded from defaults() and edited by the daily
+ * task or the owner, never by code): "roots" are the top-level categories;
+ * "subs" the subcategories (existing ones by id, new ones created by name
+ * under their root), each with the title words that pick it where Taager does
+ * not separate (fans, coolers and heaters all sit in Taager's "air care");
+ * "leaves" map every Taager category to a root and, where the store has one,
+ * a subcategory. A subcategory the product already has under the right root
+ * is kept when the map gives none. META_SUB pins a product's subcategory and
+ * META_LOCK keeps its categories as they are, apart from the one-root rule.
+ * A map that does not validate is reported (OPTION_MAP_ERROR) and the last
+ * valid one keeps working.
  *
  * It runs whenever a product is saved or its categories are set, and a daily
  * sweep re-files, in batches, every product saved since the last sweep, every
- * product that breaks the rule, and every product filed under an older
- * MAP_VERSION.
+ * product that breaks the rule, and every product filed under an older map
+ * (the map's hash is kept on each product).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -50,7 +53,13 @@ class Hayak_Product_Category {
 	const SWEEP_HOOK  = 'hayak_core_product_category_sweep';
 	const BATCH_HOOK  = 'hayak_core_product_category_batch';
 	const OPTION_LAST = 'hayak_core_product_category_last_sweep';
+	/** Resolved subcategory term ids by key, with the hash of the map they were resolved for. */
 	const OPTION_SUBS = 'hayak_core_category_subs';
+
+	/** The editable map: roots, sku_roots, sku_groups, subs, leaves (see defaults()). */
+	const OPTION_MAP       = 'hayak_category_map';
+	const OPTION_MAP_OK    = 'hayak_category_map_last_ok';
+	const OPTION_MAP_ERROR = 'hayak_category_map_error';
 
 	/** Taager product id => Taager category id, added since the catalogue file (wins over it). */
 	const OPTION_CATALOG = 'hayak_taager_catalog';
@@ -62,302 +71,116 @@ class Hayak_Product_Category {
 	const META_VERSION    = '_hayak_cat_version';
 	const META_UNRESOLVED = '_hayak_cat_unresolved';
 	const META_LOCK       = '_hayak_cat_lock';
-
-	/** Bump when LEAVES, SUBS or KEYWORDS change: every product is then re-filed by the sweep. */
-	const MAP_VERSION = 2;
+	/** A subcategory pinned by hand: its term id or its key in the map. Applies under the product's root. */
+	const META_SUB = '_hayak_cat_sub';
 
 	const BATCH_SIZE = 100;
 
-	/** Store top-level categories. */
-	const ROOTS = array(
-		'home'        => 298,
-		'electronics' => 299,
-		'beauty'      => 300,
-		'fun'         => 301,
-		'sport'       => 302,
-		'car'         => 303,
-		'tools'       => 188,
-		'fashion'     => 324,
-	);
-
-	/** Taager main category in the SKU => store root, where one main maps to one root. */
-	const SKU_ROOTS = array(
-		'01' => 'electronics',
-		'02' => 'fashion',
-		'03' => 'home',
-		'04' => 'beauty',
-	);
+	private static $filing   = false;
+	private static $catalog  = null;
+	private static $map      = null;
+	private static $map_hash = '';
 
 	/**
-	 * Taager's "05" grouping codes that mostly hold one kind of product (cars
-	 * 81%, sport 78%, toys 90%, tools 79%, kids 65%, camping 72% of the
-	 * catalogue): the root when nothing better is known. The other codes
-	 * (0506, 0507, 0509) are mixed and give nothing.
+	 * The map the option is seeded with. Keys: roots (key => term id);
+	 * sku_roots (Taager main code => root key, where one main maps to one
+	 * root); sku_groups (Taager "05" grouping code => root key, for the codes
+	 * that mostly hold one kind of product); subs (key => root, name, slug,
+	 * id when the term exists, keywords as a regex of title words that pick
+	 * it within its root, start_only when the words count only at the start
+	 * of the title); leaves (Taager category id => "root", "root/sub", or
+	 * "keep:root" for Taager categories that say nothing about the product).
 	 */
-	const SKU_GROUPS = array(
-		'0501' => 'car',
-		'0502' => 'sport',
-		'0503' => 'fun',
-		'0504' => 'tools',
-		'0505' => 'fun',
-		'0510' => 'home',
-	);
-
-	/**
-	 * Store subcategories: key => [root key, name, slug, term id when it already exists].
-	 * A missing one is created under its root on the first sweep.
-	 */
-	const SUBS = array(
-		'camping'     => array( 'home', 'أدوات تخييم', 'camping-tools', 313 ),
-		'floodlights' => array( 'home', 'كشافات', 'floodlights', 315 ),
-		'vacuums'     => array( 'home', 'مكانس كهربائية', 'vacuum-cleaners', 310 ),
-		'coolers'     => array( 'home', 'مكيفات صحراوية', 'air-coolers', 319 ),
-		'slicers'     => array( 'home', 'قطاعات خضار', 'vegetable-slicers', 321 ),
-		'fans'        => array( 'home', 'مراوح', 'fans', 320 ),
-		'heaters'     => array( 'home', 'دفايات', 'heaters', 318 ),
-		'blenders'    => array( 'home', 'خلاطات كهربائية', 'blenders', 322 ),
-		'kitchen'     => array( 'home', 'أدوات المطبخ', 'kitchen-tools', 0 ),
-		'kitchen_app' => array( 'home', 'أجهزة المطبخ', 'kitchen-appliances', 0 ),
-		'cleaning'    => array( 'home', 'أدوات التنظيف', 'cleaning-tools', 0 ),
-		'storage'     => array( 'home', 'التخزين والتنظيم', 'storage-organizers', 0 ),
-		'furniture'   => array( 'home', 'أثاث', 'furniture', 0 ),
-		'tablets'     => array( 'electronics', 'أجهزة تابلت', 'tablets', 317 ),
-		'cctv'        => array( 'electronics', 'كاميرات مراقبة', 'security-cameras', 309 ),
-		'phones'      => array( 'electronics', 'جوالات', 'mobile-phones', 312 ),
-		'mobile_acc'  => array( 'electronics', 'إكسسوارات الجوال', 'mobile-accessories', 0 ),
-		'chargers'    => array( 'electronics', 'شواحن وباور بانك', 'chargers-power-banks', 0 ),
-		'massage'     => array( 'beauty', 'أجهزة مساج', 'massagers', 314 ),
-		'skin'        => array( 'beauty', 'العناية بالبشرة', 'skin-care', 0 ),
-		'styling'     => array( 'beauty', 'أدوات التجميل والتصفيف', 'beauty-styling-tools', 0 ),
-		'hair'        => array( 'beauty', 'العناية بالشعر', 'hair-care', 0 ),
-		'medical'     => array( 'beauty', 'منتجات طبية', 'medical-products', 0 ),
-		'dashcams'    => array( 'car', 'داش كام للسيارة', 'dash-cams', 323 ),
-		'car_care'    => array( 'car', 'العناية بالسيارة', 'car-care', 0 ),
-		'drills'      => array( 'tools', 'دريل كهربائي وشنيور', 'drills', 316 ),
-		'power_tools' => array( 'tools', 'أدوات كهربائية', 'power-tools', 0 ),
-		'hand_tools'  => array( 'tools', 'أدوات يدوية', 'hand-tools', 0 ),
-	);
-
-	/**
-	 * Taager category id => [root key, sub key or null]. A root key of 'keep'
-	 * means the product's current root stays when it has exactly one, else the
-	 * third element is used. Taager's own names are in the comments.
-	 */
-	const LEAVES = array(
-		// المنزل (10)
-		10  => array( 'home', null ),
-		79  => array( 'home', null ),            // عروض المنزل
-		375 => array( 'home', null ),            // عروض المنزل > عروض المنزل
-		72  => array( 'home', null ),            // مستلزمات المنزل
-		360 => array( 'home', null ),            // أدوات منزلية
-		339 => array( 'home', 'cleaning' ),      // منتجات التنظيف
-		364 => array( 'home', 'storage' ),       // أدوات تخزين
-		340 => array( 'home', 'furniture' ),     // أثاث
-		362 => array( 'home', null ),            // اضواء داخلية
-		366 => array( 'home', 'kitchen' ),       // أدوات الشرب
-		367 => array( 'home', null ),            // منتجات الديكور
-		770 => array( 'home', null ),            // مفارش
-		772 => array( 'home', null ),            // مواد استهلاكية للمنزل
-		774 => array( 'home', null ),            // اكسسوارات منزلية
-		828 => array( 'home', null ),            // منتجات الامن و الحماية
-		73  => array( 'home', null ),            // الأجهزه المنزلية
-		368 => array( 'home', 'heaters' ),       // دفايات
-		369 => array( 'home', null ),            // العناية بالهواء (keywords: fans, coolers, heaters)
-		370 => array( 'home', null ),            // أجهزة منزلية صغيرة
-		825 => array( 'home', null ),            // العناية بالارضيات
-		826 => array( 'home', null ),            // العناية بالملابس
-		827 => array( 'home', null ),            // العناية بالماء
-		75  => array( 'home', null ),            // لحدائق المنزل
-		374 => array( 'home', null ),            // الحدائق
-		335 => array( 'home', 'floodlights' ),   // إضاءة خارجية
-		829 => array( 'home', 'furniture' ),     // الاثاث الخارجي
-		830 => array( 'home', 'camping' ),       // الشواء والباربيكيو
-		76  => array( 'home', 'kitchen' ),       // مستلزمات المطبخ
-		373 => array( 'home', 'kitchen' ),       // ادوات المطبخ
-		337 => array( 'home', 'kitchen_app' ),   // اجهزة المطبخ
-		771 => array( 'home', 'kitchen' ),       // اكسسوارات المطبخ
-		831 => array( 'home', 'storage' ),       // وحدات تخزين المطبخ
-		832 => array( 'home', 'kitchen' ),       // أدوات الطهي
-		833 => array( 'home', 'kitchen' ),       // أدوات المائدة وأواني التقديم
-		834 => array( 'home', null ),            // مستلزمات الحمام
-		835 => array( 'home', null ),
-		836 => array( 'home', 'storage' ),       // وحدات تخزين الحمام
-		837 => array( 'home', null ),
-		// إلكترونيات (6)
-		6   => array( 'electronics', null ),
-		84  => array( 'electronics', null ),     // جيمنج
-		350 => array( 'electronics', null ),     // اكسسوارات الجامينج
-		85  => array( 'electronics', null ),     // موبايل و تابلت
-		351 => array( 'electronics', 'phones' ),  // موبايلات
-		352 => array( 'electronics', 'tablets' ), // تابلتس
-		775 => array( 'electronics', null ),     // شاشات
-		82  => array( 'electronics', 'mobile_acc' ), // اكسسوارات موبايل
-		346 => array( 'electronics', 'mobile_acc' ), // اكسسوارات ذكية
-		345 => array( 'electronics', 'mobile_acc' ), // حوامل موبايل
-		343 => array( 'electronics', 'mobile_acc' ), // ساعات ذكية
-		344 => array( 'electronics', 'mobile_acc' ), // سماعات لاسلكية
-		69  => array( 'electronics', 'mobile_acc' ), // اكسسوارات كمبيوتر
-		479 => array( 'electronics', 'mobile_acc' ), // سماعات رأس
-		83  => array( 'electronics', null ),     // الكترونيات اخرى
-		349 => array( 'electronics', null ),     // الكترونيات اخرى > الكترونيات اخرى
-		348 => array( 'electronics', 'cctv' ),   // كاميرات
-		347 => array( 'electronics', null ),     // مكبرات الصوت
-		776 => array( 'home', 'floodlights' ),   // الأضائات و الفلاشات: the store keeps floodlights under home
-		778 => array( 'electronics', null ),     // أجهزة الشبكات
-		779 => array( 'electronics', null ),     // طابعات
-		99  => array( 'electronics', 'chargers' ), // شواحن
-		353 => array( 'electronics', 'chargers' ), // محولات
-		355 => array( 'electronics', 'chargers' ), // شواحن لاسلكية
-		777 => array( 'electronics', 'chargers' ), // باوربنكات
-		100 => array( 'electronics', null ),     // عروض الالكترونيات
-		357 => array( 'electronics', null ),
-		// الصحه والجمال (9)
-		9   => array( 'beauty', null ),
-		88  => array( 'beauty', 'styling' ),     // أدوات التجميل والتصفيف
-		377 => array( 'beauty', 'styling' ),     // مجفف شعر
-		379 => array( 'beauty', 'styling' ),     // مكواة فرد الشعر
-		381 => array( 'beauty', 'styling' ),     // مكواة لف الشعر
-		380 => array( 'beauty', 'styling' ),     // أجهزة IPL وليزر
-		378 => array( 'beauty', 'styling' ),     // أجهزة إزالة الشعر
-		780 => array( 'beauty', 'styling' ),     // إكسسوارات
-		90  => array( 'beauty', null ),          // عروض الصحة والجمال
-		392 => array( 'beauty', null ),
-		89  => array( 'beauty', null ),          // العناية الشخصية
-		383 => array( 'beauty', 'styling' ),     // مزيلات الشعر الكهربائية
-		382 => array( 'beauty', null ),          // مكن حلاقة
-		385 => array( 'beauty', 'styling' ),     // مجففات الشعر
-		387 => array( 'beauty', null ),          // ميزان
-		386 => array( 'beauty', null ),          // منتجات الاستحمام والعناية بالجسم
-		390 => array( 'beauty', null ),          // العناية بالفم والأسنان
-		391 => array( 'beauty', null ),          // مزيلات العرق
-		389 => array( 'beauty', null ),          // العناية النسائية
-		388 => array( 'beauty', 'skin' ),        // كريمات ترطيب
-		735 => array( 'beauty', 'skin' ),        // مستحضرات العناية بالبشرة
-		740 => array( 'beauty', 'skin' ),        // مرطبات
-		781 => array( 'beauty', 'skin' ),        // واقي الشمس
-		782 => array( 'beauty', 'skin' ),        // غسول
-		783 => array( 'beauty', 'skin' ),        // تونر
-		786 => array( 'beauty', 'skin' ),        // مجموعة هدايا
-		736 => array( 'beauty', 'massage' ),     // اجهزة مساج
-		738 => array( 'beauty', 'massage' ),
-		787 => array( 'beauty', 'massage' ),
-		788 => array( 'beauty', 'massage' ),
-		790 => array( 'beauty', 'massage' ),
-		791 => array( 'beauty', 'massage' ),
-		737 => array( 'beauty', 'hair' ),        // منتجات العناية بالشعر
-		739 => array( 'beauty', null ),          // بلسم: at Taager a catch-all (shapers, devices, one conditioner)
-		792 => array( 'beauty', 'hair' ),        // شامبو
-		793 => array( 'beauty', 'hair' ),        // ماسك للشعر
-		794 => array( 'beauty', 'hair' ),        // زيوت وسيروم
-		795 => array( 'beauty', 'hair' ),        // مستحضرات صبغ الشعر
-		796 => array( 'beauty', 'hair' ),        // منتجات تساقط الشعر
-		797 => array( 'beauty', null ),          // منتجات العناية بالرجال
-		799 => array( 'beauty', null ),          // ماكينة حلاقة
-		800 => array( 'beauty', null ),
-		801 => array( 'beauty', null ),
-		802 => array( 'beauty', null ),
-		803 => array( 'beauty', null ),          // العناية باللحية
-		804 => array( 'beauty', null ),          // ميك-اب
-		805 => array( 'beauty', null ),
-		806 => array( 'beauty', null ),
-		807 => array( 'beauty', null ),
-		808 => array( 'beauty', null ),
-		809 => array( 'beauty', null ),
-		810 => array( 'beauty', null ),
-		811 => array( 'beauty', null ),
-		812 => array( 'beauty', null ),
-		813 => array( 'beauty', 'medical' ),     // منتجات طبية
-		816 => array( 'beauty', 'medical' ),     // فارما
-		817 => array( 'beauty', 'medical' ),     // مكملات غذائية
-		818 => array( 'beauty', 'medical' ),     // أجهزة طبية
-		819 => array( 'beauty', 'medical' ),     // مشدات الجسم ودعامات المفاصل
-		821 => array( 'beauty', null ),          // عطور
-		824 => array( 'beauty', null ),
-		// منتجات ترفيهية (8): split by Taager's own subcategory
-		8   => array( 'keep', null, 'fun' ),
-		74  => array( 'keep', null, 'fun' ),     // عروض ترفيهية
-		333 => array( 'keep', null, 'fun' ),
-		70  => array( 'car', null ),             // مستلزمات السيارات
-		342 => array( 'car', null ),             // اكسسوارات سيارات
-		358 => array( 'car', 'car_care' ),       // منظفات ومعطرات للسياره
-		359 => array( 'car', null ),             // حوامل
-		361 => array( 'car', null ),             // إصلاحات
-		823 => array( 'car', null ),             // مكانس السيارات
-		77  => array( 'fun', null ),             // العاب
-		363 => array( 'fun', null ),
-		365 => array( 'fun', null ),             // العاب اطفال
-		67  => array( 'fun', null ),             // مستلزمات أطفال
-		354 => array( 'fun', null ),
-		138 => array( 'fun', null ),             // هدايا
-		480 => array( 'fun', null ),
-		87  => array( 'sport', null ),           // منتجات رياضية
-		371 => array( 'sport', null ),           // أدوات رياضية
-		372 => array( 'sport', null ),
-		822 => array( 'sport', null ),           // الآلات الرياضية
-		68  => array( 'tools', null ),           // أدوات
-		356 => array( 'tools', 'power_tools' ),  // أدوات كهربائية
-		336 => array( 'tools', 'hand_tools' ),   // أدوات يدوية
-		769 => array( 'tools', null ),           // ادوات زراعة
-		80  => array( 'home', 'camping' ),       // التخييم و الرحلات
-		376 => array( 'home', 'camping' ),
-		741 => array( 'home', null ),            // القرطاسية
-		742 => array( 'home', null ),            // مستلزمات المكاتب
-		101 => array( 'home', null ),            // منتجات الحيوانات الأليفة
-		384 => array( 'home', null ),
-		// فاشون (7)
-		7   => array( 'fashion', null ),
-		71  => array( 'fashion', null ),         // ساعات
-		338 => array( 'fashion', null ),
-		86  => array( 'fashion', null ),
-		94  => array( 'fashion', null ),
-		95  => array( 'fashion', null ),
-		96  => array( 'fashion', null ),         // أحذية
-		97  => array( 'fashion', null ),         // أكسسوارات
-		474 => array( 'fashion', null ),         // شنط
-		98  => array( 'fashion', null ),
-		// عروض تاجر الحصرية (13), خصومات (12), منتجات اسلامية (18): no type of their own
-		13  => array( 'keep', null, 'home' ),
-		126 => array( 'keep', null, 'home' ),
-		469 => array( 'keep', null, 'home' ),
-		12  => array( 'keep', null, 'home' ),
-		81  => array( 'keep', null, 'home' ),
-		91  => array( 'keep', null, 'home' ),
-		136 => array( 'keep', null, 'home' ),
-		476 => array( 'keep', null, 'home' ),
-		18  => array( 'keep', null, 'home' ),
-		137 => array( 'keep', null, 'home' ),
-		477 => array( 'keep', null, 'home' ),
-		478 => array( 'keep', null, 'home' ),
-	);
-
-	/**
-	 * Title words that pick a subcategory within a root, where Taager does not
-	 * separate them: [root key, pattern, sub key, start only]. The pattern is
-	 * tried at the start of the title (after an offer or bundle prefix) first,
-	 * for every rule, then anywhere in the title; the first match wins. A rule
-	 * marked start-only is skipped in the second pass: "حامل هاتف" is an
-	 * accessory, "هاتف نوكيا" a phone.
-	 */
-	const KEYWORDS = array(
-		array( 'home', 'مكنس[ةه]|مكانس|مكنست(?:ان|ين)', 'vacuums' ),
-		array( 'home', 'مكيف(?:ات)?(?!\s+(?:ال)?سيار)', 'coolers' ),
-		array( 'home', 'مروح[ةه]|مراوح', 'fans' ),
-		array( 'home', 'دفاي[ةه]|دفايات|مدفأ[ةه]', 'heaters' ),
-		array( 'home', 'قطاع[ةه]|قطّاع[ةه]|قطاعات', 'slicers' ),
-		array( 'home', 'كشاف|كشافات', 'floodlights' ),
-		array( 'home', 'خلاط|خلاطات|هاند\s*بلندر|محضر\s+(?:ال)?طعام', 'blenders' ),
-		array( 'home', 'خيم[ةه]|خيام', 'camping' ),
-		array( 'electronics', 'تابلت', 'tablets', true ),
-		array( 'electronics', 'جوال|هاتف|موبايل|تليفون|شبيه\s+(?:ال)?(?:ايفون|آيفون|أيفون|جوال)', 'phones', true ),
-		array( 'electronics', 'كاميرا(?:ت)?\s+(?:ال)?مراقب[ةه]', 'cctv' ),
-		array( 'electronics', 'باور\s*بانك|باوربانك|شاحن', 'chargers' ),
-		array( 'beauty', '(?:جهاز\s+)?(?:مساج|تدليك|مدلك)', 'massage' ),
-		array( 'car', 'داش\s*كام|كاميرا\s+(?:ال)?سيار[ةه]|كاميرا\s+للسيار[ةه]', 'dashcams' ),
-		array( 'tools', 'دريل|شنيور|مثقاب', 'drills' ),
-	);
-
-	private static $filing  = false;
-	private static $catalog = null;
+	public static function defaults() {
+		return array(
+			'roots'      => array(
+				'home'        => 298,
+				'electronics' => 299,
+				'beauty'      => 300,
+				'fun'         => 301,
+				'sport'       => 302,
+				'car'         => 303,
+				'tools'       => 188,
+				'fashion'     => 324,
+			),
+			'sku_roots'  => array( '01' => 'electronics', '02' => 'fashion', '03' => 'home', '04' => 'beauty' ),
+			'sku_groups' => array( '0501' => 'car', '0502' => 'sport', '0503' => 'fun', '0504' => 'tools', '0505' => 'fun', '0510' => 'home' ),
+			// Order matters: the first subcategory whose words match wins.
+			'subs'       => array(
+				'vacuums'     => array( 'root' => 'home', 'name' => 'مكانس كهربائية', 'slug' => 'vacuum-cleaners', 'id' => 310, 'keywords' => 'مكنس[ةه]|مكانس|مكنست(?:ان|ين)' ),
+				'coolers'     => array( 'root' => 'home', 'name' => 'مكيفات صحراوية', 'slug' => 'air-coolers', 'id' => 319, 'keywords' => 'مكيف(?:ات)?(?!\s+(?:ال)?سيار)' ),
+				'fans'        => array( 'root' => 'home', 'name' => 'مراوح', 'slug' => 'fans', 'id' => 320, 'keywords' => 'مروح[ةه]|مراوح' ),
+				'heaters'     => array( 'root' => 'home', 'name' => 'دفايات', 'slug' => 'heaters', 'id' => 318, 'keywords' => 'دفاي[ةه]|دفايات|مدفأ[ةه]' ),
+				'slicers'     => array( 'root' => 'home', 'name' => 'قطاعات خضار', 'slug' => 'vegetable-slicers', 'id' => 321, 'keywords' => 'قطاع[ةه]|قطّاع[ةه]|قطاعات' ),
+				'floodlights' => array( 'root' => 'home', 'name' => 'كشافات', 'slug' => 'floodlights', 'id' => 315, 'keywords' => 'كشاف|كشافات' ),
+				'blenders'    => array( 'root' => 'home', 'name' => 'خلاطات كهربائية', 'slug' => 'blenders', 'id' => 322, 'keywords' => 'خلاط|خلاطات|هاند\s*بلندر|محضر\s+(?:ال)?طعام' ),
+				'camping'     => array( 'root' => 'home', 'name' => 'أدوات تخييم', 'slug' => 'camping-tools', 'id' => 313, 'keywords' => 'خيم[ةه]|خيام' ),
+				'kitchen'     => array( 'root' => 'home', 'name' => 'أدوات المطبخ', 'slug' => 'kitchen-tools', 'id' => 325 ),
+				'kitchen_app' => array( 'root' => 'home', 'name' => 'أجهزة المطبخ', 'slug' => 'kitchen-appliances', 'id' => 326 ),
+				'cleaning'    => array( 'root' => 'home', 'name' => 'أدوات التنظيف', 'slug' => 'cleaning-tools', 'id' => 327 ),
+				'storage'     => array( 'root' => 'home', 'name' => 'التخزين والتنظيم', 'slug' => 'storage-organizers', 'id' => 328 ),
+				'furniture'   => array( 'root' => 'home', 'name' => 'أثاث', 'slug' => 'furniture', 'id' => 329 ),
+				'tablets'     => array( 'root' => 'electronics', 'name' => 'أجهزة تابلت', 'slug' => 'tablets', 'id' => 317, 'keywords' => 'تابلت', 'start_only' => true ),
+				'phones'      => array( 'root' => 'electronics', 'name' => 'جوالات', 'slug' => 'mobile-phones', 'id' => 312, 'keywords' => 'جوال|هاتف|موبايل|تليفون|شبيه\s+(?:ال)?(?:ايفون|آيفون|أيفون|جوال)', 'start_only' => true ),
+				'cctv'        => array( 'root' => 'electronics', 'name' => 'كاميرات مراقبة', 'slug' => 'security-cameras', 'id' => 309, 'keywords' => 'كاميرا(?:ت)?\s+(?:ال)?مراقب[ةه]' ),
+				'chargers'    => array( 'root' => 'electronics', 'name' => 'شواحن وباور بانك', 'slug' => 'chargers-power-banks', 'id' => 331, 'keywords' => 'باور\s*بانك|باوربانك|شاحن' ),
+				'mobile_acc'  => array( 'root' => 'electronics', 'name' => 'إكسسوارات الجوال', 'slug' => 'mobile-accessories', 'id' => 330 ),
+				'massage'     => array( 'root' => 'beauty', 'name' => 'أجهزة مساج', 'slug' => 'massagers', 'id' => 314, 'keywords' => '(?:جهاز\s+)?(?:مساج|تدليك|مدلك)' ),
+				'skin'        => array( 'root' => 'beauty', 'name' => 'العناية بالبشرة', 'slug' => 'skin-care', 'id' => 332 ),
+				'styling'     => array( 'root' => 'beauty', 'name' => 'أدوات التجميل والتصفيف', 'slug' => 'beauty-styling-tools', 'id' => 333 ),
+				'hair'        => array( 'root' => 'beauty', 'name' => 'العناية بالشعر', 'slug' => 'hair-care', 'id' => 334 ),
+				'medical'     => array( 'root' => 'beauty', 'name' => 'منتجات طبية', 'slug' => 'medical-products', 'id' => 335 ),
+				'dashcams'    => array( 'root' => 'car', 'name' => 'داش كام للسيارة', 'slug' => 'dash-cams', 'id' => 323, 'keywords' => 'داش\s*كام|كاميرا\s+(?:ال)?سيار[ةه]|كاميرا\s+للسيار[ةه]' ),
+				'car_care'    => array( 'root' => 'car', 'name' => 'العناية بالسيارة', 'slug' => 'car-care', 'id' => 336 ),
+				'drills'      => array( 'root' => 'tools', 'name' => 'دريل كهربائي وشنيور', 'slug' => 'drills', 'id' => 316, 'keywords' => 'دريل|شنيور|مثقاب' ),
+				'power_tools' => array( 'root' => 'tools', 'name' => 'أدوات كهربائية', 'slug' => 'power-tools', 'id' => 337 ),
+				'hand_tools'  => array( 'root' => 'tools', 'name' => 'أدوات يدوية', 'slug' => 'hand-tools', 'id' => 338 ),
+			),
+			// Taager's own names are in the comments of the first version of this file (2 Oct 2026).
+			'leaves'     => array(
+				// المنزل
+				'10' => 'home', '79' => 'home', '375' => 'home', '72' => 'home', '360' => 'home', '339' => 'home/cleaning',
+				'364' => 'home/storage', '340' => 'home/furniture', '362' => 'home', '366' => 'home/kitchen', '367' => 'home',
+				'770' => 'home', '772' => 'home', '774' => 'home', '828' => 'home', '73' => 'home', '368' => 'home/heaters',
+				'369' => 'home', '370' => 'home', '825' => 'home', '826' => 'home', '827' => 'home', '75' => 'home', '374' => 'home',
+				'335' => 'home/floodlights', '829' => 'home/furniture', '830' => 'home/camping', '76' => 'home/kitchen',
+				'373' => 'home/kitchen', '337' => 'home/kitchen_app', '771' => 'home/kitchen', '831' => 'home/storage',
+				'832' => 'home/kitchen', '833' => 'home/kitchen', '834' => 'home', '835' => 'home', '836' => 'home/storage', '837' => 'home',
+				// إلكترونيات
+				'6' => 'electronics', '84' => 'electronics', '350' => 'electronics', '85' => 'electronics', '351' => 'electronics/phones',
+				'352' => 'electronics/tablets', '775' => 'electronics', '82' => 'electronics/mobile_acc', '346' => 'electronics/mobile_acc',
+				'345' => 'electronics/mobile_acc', '343' => 'electronics/mobile_acc', '344' => 'electronics/mobile_acc',
+				'69' => 'electronics/mobile_acc', '479' => 'electronics/mobile_acc', '83' => 'electronics', '349' => 'electronics',
+				'348' => 'electronics/cctv', '347' => 'electronics', '776' => 'home/floodlights', '778' => 'electronics',
+				'779' => 'electronics', '99' => 'electronics/chargers', '353' => 'electronics/chargers', '355' => 'electronics/chargers',
+				'777' => 'electronics/chargers', '100' => 'electronics', '357' => 'electronics',
+				// الصحه والجمال
+				'9' => 'beauty', '88' => 'beauty/styling', '377' => 'beauty/styling', '379' => 'beauty/styling', '381' => 'beauty/styling',
+				'380' => 'beauty/styling', '378' => 'beauty/styling', '780' => 'beauty/styling', '90' => 'beauty', '392' => 'beauty',
+				'89' => 'beauty', '383' => 'beauty/styling', '382' => 'beauty', '385' => 'beauty/styling', '387' => 'beauty', '386' => 'beauty',
+				'390' => 'beauty', '391' => 'beauty', '389' => 'beauty', '388' => 'beauty/skin', '735' => 'beauty/skin', '740' => 'beauty/skin',
+				'781' => 'beauty/skin', '782' => 'beauty/skin', '783' => 'beauty/skin', '786' => 'beauty/skin', '736' => 'beauty/massage',
+				'738' => 'beauty/massage', '787' => 'beauty/massage', '788' => 'beauty/massage', '790' => 'beauty/massage',
+				'791' => 'beauty/massage', '737' => 'beauty/hair', '739' => 'beauty', '792' => 'beauty/hair', '793' => 'beauty/hair',
+				'794' => 'beauty/hair', '795' => 'beauty/hair', '796' => 'beauty/hair', '797' => 'beauty', '799' => 'beauty', '800' => 'beauty',
+				'801' => 'beauty', '802' => 'beauty', '803' => 'beauty', '804' => 'beauty', '805' => 'beauty', '806' => 'beauty', '807' => 'beauty',
+				'808' => 'beauty', '809' => 'beauty', '810' => 'beauty', '811' => 'beauty', '812' => 'beauty', '813' => 'beauty/medical',
+				'816' => 'beauty/medical', '817' => 'beauty/medical', '818' => 'beauty/medical', '819' => 'beauty/medical', '821' => 'beauty', '824' => 'beauty',
+				// منتجات ترفيهية: split by Taager's own subcategory
+				'8' => 'keep:fun', '74' => 'keep:fun', '333' => 'keep:fun', '70' => 'car', '342' => 'car', '358' => 'car/car_care', '359' => 'car',
+				'361' => 'car', '823' => 'car', '77' => 'fun', '363' => 'fun', '365' => 'fun', '67' => 'fun', '354' => 'fun', '138' => 'fun',
+				'480' => 'fun', '87' => 'sport', '371' => 'sport', '372' => 'sport', '822' => 'sport', '68' => 'tools', '356' => 'tools/power_tools',
+				'336' => 'tools/hand_tools', '769' => 'tools', '80' => 'home/camping', '376' => 'home/camping', '741' => 'home', '742' => 'home',
+				'101' => 'home', '384' => 'home',
+				// فاشون
+				'7' => 'fashion', '71' => 'fashion', '338' => 'fashion', '86' => 'fashion', '94' => 'fashion', '95' => 'fashion', '96' => 'fashion',
+				'97' => 'fashion', '474' => 'fashion', '98' => 'fashion',
+				// عروض تاجر الحصرية, خصومات, منتجات اسلامية: no type of their own
+				'13' => 'keep:home', '126' => 'keep:home', '469' => 'keep:home', '12' => 'keep:home', '81' => 'keep:home', '91' => 'keep:home',
+				'136' => 'keep:home', '476' => 'keep:home', '18' => 'keep:home', '137' => 'keep:home', '477' => 'keep:home', '478' => 'keep:home',
+			),
+		);
+	}
 
 	public static function init() {
 		add_action( 'set_object_terms', array( __CLASS__, 'terms_set' ), 20, 4 );
@@ -372,9 +195,9 @@ class Hayak_Product_Category {
 		if ( ! wp_next_scheduled( self::SWEEP_HOOK ) ) {
 			wp_schedule_event( time() + 4 * HOUR_IN_SECONDS, 'daily', self::SWEEP_HOOK );
 		}
-		// A new map version re-files the catalogue once, in batches.
+		// A changed map re-files the catalogue once, in batches.
 		$subs = get_option( self::OPTION_SUBS, array() );
-		if ( ( (int) ( $subs['version'] ?? 0 ) ) !== self::MAP_VERSION && ! wp_next_scheduled( self::SWEEP_HOOK, array( true ) ) ) {
+		if ( ( is_array( $subs ) ? (string) ( $subs['hash'] ?? '' ) : '' ) !== self::map_hash() && ! wp_next_scheduled( self::SWEEP_HOOK, array( true ) ) ) {
 			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::SWEEP_HOOK, array( true ) );
 		}
 	}
@@ -399,6 +222,174 @@ class Hayak_Product_Category {
 		self::file( (int) $product_id );
 	}
 
+	/* ---------------------------------------------------------------- The map */
+
+	/**
+	 * The map in use: the option when it validates (seeded from defaults()
+	 * when missing), else the last valid one, else the defaults. An invalid
+	 * option is reported in OPTION_MAP_ERROR for the daily task.
+	 */
+	public static function map() {
+		if ( null !== self::$map ) {
+			return self::$map;
+		}
+		$saved = get_option( self::OPTION_MAP, null );
+		if ( ! is_array( $saved ) || ! $saved ) {
+			$saved = self::defaults();
+			update_option( self::OPTION_MAP, $saved, true );
+		}
+		$error = self::validate( $saved );
+		if ( '' === $error ) {
+			self::$map = self::normalize( $saved );
+			if ( '' !== (string) get_option( self::OPTION_MAP_ERROR, '' ) ) {
+				delete_option( self::OPTION_MAP_ERROR );
+			}
+		} else {
+			update_option( self::OPTION_MAP_ERROR, $error, true );
+			$ok        = get_option( self::OPTION_MAP_OK, null );
+			self::$map = self::normalize( is_array( $ok ) && '' === self::validate( $ok ) ? $ok : self::defaults() );
+		}
+		self::$map_hash = substr( md5( (string) wp_json_encode( self::$map ) ), 0, 12 );
+		if ( '' === $error ) {
+			// Keep a copy of the last map that validated, for the fallback above (written once per change).
+			$subs = get_option( self::OPTION_SUBS, array() );
+			if ( ! is_array( $subs ) || (string) ( $subs['hash'] ?? '' ) !== self::$map_hash ) {
+				update_option( self::OPTION_MAP_OK, $saved, false );
+			}
+		}
+		return self::$map;
+	}
+
+	/** A short hash of the map in use; kept on each product it filed. */
+	public static function map_hash() {
+		self::map();
+		return self::$map_hash;
+	}
+
+	/** '' when the map is usable, else what is wrong with it (the first problem found). */
+	public static function validate( $m ) {
+		if ( ! is_array( $m ) ) {
+			return 'map is not an object';
+		}
+		foreach ( array( 'roots', 'subs', 'leaves' ) as $k ) {
+			if ( empty( $m[ $k ] ) || ! is_array( $m[ $k ] ) ) {
+				return "$k is missing or empty";
+			}
+		}
+		foreach ( $m['roots'] as $key => $id ) {
+			if ( ! preg_match( '/^[a-z][a-z0-9_]*$/', (string) $key ) ) {
+				return "roots: key '$key' must be latin letters, digits or _";
+			}
+			if ( ! is_numeric( $id ) || (int) $id <= 0 ) {
+				return "roots.$key must be a term id";
+			}
+		}
+		foreach ( array( 'sku_roots', 'sku_groups' ) as $k ) {
+			if ( isset( $m[ $k ] ) && ! is_array( $m[ $k ] ) ) {
+				return "$k must be an object";
+			}
+			foreach ( (array) ( $m[ $k ] ?? array() ) as $code => $root ) {
+				if ( ! preg_match( '/^[0-9]{2,4}$/', (string) $code ) || ! isset( $m['roots'][ $root ] ) ) {
+					return "$k.$code must map a 2-4 digit code to a root key";
+				}
+			}
+		}
+		foreach ( $m['subs'] as $key => $def ) {
+			if ( ! preg_match( '/^[a-z][a-z0-9_]*$/', (string) $key ) ) {
+				return "subs: key '$key' must be latin letters, digits or _";
+			}
+			if ( ! is_array( $def ) || empty( $def['root'] ) || ! isset( $m['roots'][ $def['root'] ] ) ) {
+				return "subs.$key.root must be a root key";
+			}
+			if ( empty( $def['name'] ) || ! is_string( $def['name'] ) ) {
+				return "subs.$key.name is missing";
+			}
+			if ( empty( $def['slug'] ) || ! preg_match( '/^[a-z0-9]+(?:-[a-z0-9]+)*$/', (string) $def['slug'] ) ) {
+				return "subs.$key.slug must be latin letters, digits and dashes";
+			}
+			if ( isset( $def['id'] ) && ! is_numeric( $def['id'] ) ) {
+				return "subs.$key.id must be a term id";
+			}
+			if ( ! empty( $def['keywords'] ) ) {
+				if ( ! is_string( $def['keywords'] ) || false === @preg_match( '/(?:' . $def['keywords'] . ')/u', '' ) ) {
+					return "subs.$key.keywords is not a valid regular expression";
+				}
+			}
+		}
+		foreach ( $m['leaves'] as $leaf => $target ) {
+			if ( ! preg_match( '/^[0-9]+$/', (string) $leaf ) ) {
+				return "leaves: key '$leaf' must be a Taager category id";
+			}
+			$e = self::parse_leaf( $target );
+			if ( ! $e ) {
+				return "leaves.$leaf must be 'root', 'root/sub' or 'keep:root'";
+			}
+			if ( 'keep' === $e[0] ) {
+				if ( ! isset( $m['roots'][ $e[2] ] ) ) {
+					return "leaves.$leaf: '{$e[2]}' is not a root key";
+				}
+				continue;
+			}
+			if ( ! isset( $m['roots'][ $e[0] ] ) ) {
+				return "leaves.$leaf: '{$e[0]}' is not a root key";
+			}
+			if ( $e[1] && ( ! isset( $m['subs'][ $e[1] ] ) || ( $m['subs'][ $e[1] ]['root'] ?? '' ) !== $e[0] ) ) {
+				return "leaves.$leaf: '{$e[1]}' is not a subcategory of '{$e[0]}'";
+			}
+		}
+		return '';
+	}
+
+	/** "root" => [root, null], "root/sub" => [root, sub], "keep:root" => ['keep', null, root]; null when malformed. */
+	protected static function parse_leaf( $target ) {
+		if ( ! is_string( $target ) || '' === $target ) {
+			return null;
+		}
+		if ( 0 === strpos( $target, 'keep:' ) ) {
+			$root = substr( $target, 5 );
+			return '' !== $root ? array( 'keep', null, $root ) : null;
+		}
+		$parts = explode( '/', $target, 2 );
+		if ( '' === $parts[0] || ( isset( $parts[1] ) && '' === $parts[1] ) ) {
+			return null;
+		}
+		return array( $parts[0], $parts[1] ?? null );
+	}
+
+	/** Types made uniform, leaves parsed; the map the rest of the class reads. */
+	protected static function normalize( array $m ) {
+		$out = array( 'roots' => array(), 'sku_roots' => array(), 'sku_groups' => array(), 'subs' => array(), 'leaves' => array() );
+		foreach ( $m['roots'] as $key => $id ) {
+			$out['roots'][ (string) $key ] = (int) $id;
+		}
+		foreach ( array( 'sku_roots', 'sku_groups' ) as $k ) {
+			foreach ( (array) ( $m[ $k ] ?? array() ) as $code => $root ) {
+				$out[ $k ][ (string) $code ] = (string) $root;
+			}
+		}
+		foreach ( $m['subs'] as $key => $def ) {
+			$out['subs'][ (string) $key ] = array(
+				'root'       => (string) $def['root'],
+				'name'       => trim( (string) $def['name'] ),
+				'slug'       => (string) $def['slug'],
+				'id'         => (int) ( $def['id'] ?? 0 ),
+				'keywords'   => (string) ( $def['keywords'] ?? '' ),
+				'start_only' => ! empty( $def['start_only'] ),
+			);
+		}
+		foreach ( $m['leaves'] as $leaf => $target ) {
+			$out['leaves'][ (string) (int) $leaf ] = self::parse_leaf( $target );
+		}
+		return $out;
+	}
+
+	/** Term id of a root key, or 0. */
+	protected static function root_id( $key ) {
+		return (int) ( self::map()['roots'][ (string) $key ] ?? 0 );
+	}
+
+	/* ------------------------------------------------------------- Filing */
+
 	/**
 	 * File one product. Returns ['changed' => bool, 'root' => id, 'sub' => id|0,
 	 * 'unresolved' => reason|''].
@@ -409,21 +400,23 @@ class Hayak_Product_Category {
 		if ( ! $product instanceof WC_Product || $product->is_type( 'variation' ) ) {
 			return $result;
 		}
+		$map     = self::map();
 		$subs    = self::subs();
 		$current = self::current_terms( $post_id );
-		$roots   = array_values( array_intersect( $current, self::ROOTS ) );
+		$roots   = array_values( array_intersect( $current, $map['roots'] ) );
 		$locked  = (bool) $product->get_meta( self::META_LOCK );
+		$sku     = $product->get_sku( 'edit' );
 
 		$leaf  = $locked ? 0 : self::leaf_for( $product );
-		$entry = $leaf ? ( self::LEAVES[ $leaf ] ?? null ) : null;
+		$entry = $leaf ? ( $map['leaves'][ (string) $leaf ] ?? null ) : null;
 		$root  = 0;
 		$sub   = 0;
 
 		if ( $locked || ! $entry ) {
 			if ( ! $locked && ! $entry ) {
-				$code = self::sku_main( $product->get_sku( 'edit' ) );
-				if ( $code && isset( self::SKU_ROOTS[ $code ] ) ) {
-					$root = self::ROOTS[ self::SKU_ROOTS[ $code ] ];
+				$code = self::sku_main( $sku );
+				if ( $code && isset( $map['sku_roots'][ $code ] ) ) {
+					$root = self::root_id( $map['sku_roots'][ $code ] );
 				}
 				if ( $leaf ) {
 					$result['unresolved'] = 'leaf ' . $leaf . ' not in map';
@@ -434,22 +427,22 @@ class Hayak_Product_Category {
 				}
 			}
 			if ( ! $root ) {
-				$root = self::pick_root( $current, $roots, $locked ? 0 : self::sku_group_root( $product->get_sku( 'edit' ) ), 0, $product, $subs );
+				$root = self::pick_root( $current, $roots, $locked ? 0 : self::sku_group_root( $sku ), 0, $product, $subs );
 			}
 		} elseif ( 'keep' === $entry[0] ) {
-			$root = self::pick_root( $current, $roots, self::sku_group_root( $product->get_sku( 'edit' ) ), self::ROOTS[ $entry[2] ], $product, $subs );
+			$root = self::pick_root( $current, $roots, self::sku_group_root( $sku ), self::root_id( $entry[2] ), $product, $subs );
 			if ( ! $root ) {
 				$result['unresolved'] = 'two roots';
 			}
 		} else {
-			$root = self::ROOTS[ $entry[0] ];
+			$root = self::root_id( $entry[0] );
 		}
 
 		if ( ! $root ) {
 			// Nothing to decide the root: leave the product as it is.
 			if ( $result['unresolved'] ) {
 				$product->update_meta_data( self::META_UNRESOLVED, $result['unresolved'] );
-				$product->update_meta_data( self::META_VERSION, self::MAP_VERSION );
+				$product->update_meta_data( self::META_VERSION, self::map_hash() );
 				self::$filing = true;
 				$product->save_meta_data();
 				self::$filing = false;
@@ -458,8 +451,11 @@ class Hayak_Product_Category {
 		}
 
 		if ( ! $locked ) {
-			$sub = self::keyword_sub( $product->get_name( 'edit' ), $root, $subs );
-			if ( ! $sub && $entry && ! empty( $entry[1] ) && isset( $subs[ $entry[1] ] ) && self::ROOTS[ self::SUBS[ $entry[1] ][0] ] === $root ) {
+			$sub = self::pinned_sub( $product, $root, $subs );
+			if ( ! $sub ) {
+				$sub = self::keyword_sub( $product->get_name( 'edit' ), $root, $subs );
+			}
+			if ( ! $sub && $entry && ! empty( $entry[1] ) && ! empty( $subs[ $entry[1] ] ) && self::sub_parent( $subs[ $entry[1] ], $subs ) === $root ) {
 				$sub = (int) $subs[ $entry[1] ];
 			}
 		}
@@ -494,7 +490,7 @@ class Hayak_Product_Category {
 				}
 			}
 		}
-		$product->update_meta_data( self::META_VERSION, self::MAP_VERSION );
+		$product->update_meta_data( self::META_VERSION, self::map_hash() );
 		if ( $result['unresolved'] ) {
 			$product->update_meta_data( self::META_UNRESOLVED, $result['unresolved'] );
 		} else {
@@ -550,13 +546,23 @@ class Hayak_Product_Category {
 		return is_wp_error( $terms ) ? array() : array_values( array_map( 'intval', $terms ) );
 	}
 
-	/** The root of a store subcategory term, or 0 when the term is not one of SUBS. */
+	/** The root of a store subcategory term, or 0 when the term is not one of the map's subs. */
 	protected static function sub_parent( $term_id, array $subs ) {
 		$key = array_search( (int) $term_id, $subs, true );
-		if ( false === $key || 'version' === $key || ! isset( self::SUBS[ $key ] ) ) {
+		if ( false === $key || 'hash' === $key || ! isset( self::map()['subs'][ $key ] ) ) {
 			return 0;
 		}
-		return self::ROOTS[ self::SUBS[ $key ][0] ];
+		return self::root_id( self::map()['subs'][ $key ]['root'] );
+	}
+
+	/** The subcategory pinned on the product (META_SUB: term id or map key), when it sits under $root; else 0. */
+	protected static function pinned_sub( WC_Product $product, $root, array $subs ) {
+		$pin = trim( (string) $product->get_meta( self::META_SUB ) );
+		if ( '' === $pin ) {
+			return 0;
+		}
+		$term_id = is_numeric( $pin ) ? (int) $pin : (int) ( $subs[ $pin ] ?? 0 );
+		return $term_id && self::sub_parent( $term_id, $subs ) === $root ? $term_id : 0;
 	}
 
 	/** Taager's main category code from a SKU ("01".."05"), or ''. */
@@ -569,33 +575,37 @@ class Hayak_Product_Category {
 		return ctype_digit( $code ) ? $code : '';
 	}
 
-	/** The root a "05" grouping code points to (SKU_GROUPS), or 0. */
+	/** The root a grouping code points to (the map's sku_groups), or 0. */
 	public static function sku_group_root( $sku ) {
 		$sku   = strtoupper( (string) $sku );
 		$group = 0 === strpos( $sku, 'SA' ) ? substr( $sku, 2, 4 ) : '';
-		return isset( self::SKU_GROUPS[ $group ] ) ? self::ROOTS[ self::SKU_GROUPS[ $group ] ] : 0;
+		$key   = self::map()['sku_groups'][ $group ] ?? '';
+		return $key ? self::root_id( $key ) : 0;
 	}
 
 	/**
-	 * The subcategory a title picks within a root, or 0: every rule at the start
-	 * of the title first, then every rule anywhere in it.
+	 * The subcategory a title picks within a root, or 0: every subcategory's
+	 * words at the start of the title (after an offer or bundle prefix) first,
+	 * then anywhere in it, skipping start-only ones; the first match wins.
 	 */
 	public static function keyword_sub( $title, $root, array $subs ) {
 		$title  = trim( (string) $title );
 		$prefix = '^(?:(?:عرض|باقة|بكج|باكج|طقم|مجموعة)\s*\d*\s*(?:حبات|قطع|حبة|قطعة)?\s*)?(?:ال)?';
 		foreach ( array( true, false ) as $anchored ) {
-			foreach ( self::KEYWORDS as $rule ) {
-				if ( self::ROOTS[ $rule[0] ] !== $root || empty( $subs[ $rule[2] ] ) || ( ! $anchored && ! empty( $rule[3] ) ) ) {
+			foreach ( self::map()['subs'] as $key => $def ) {
+				if ( '' === $def['keywords'] || self::root_id( $def['root'] ) !== $root || empty( $subs[ $key ] ) || ( ! $anchored && $def['start_only'] ) ) {
 					continue;
 				}
-				$pattern = $anchored ? '/' . $prefix . '(?:' . $rule[1] . ')/u' : '/(?<!\p{L})(?:' . $rule[1] . ')/u';
-				if ( preg_match( $pattern, $title ) ) {
-					return (int) $subs[ $rule[2] ];
+				$pattern = $anchored ? '/' . $prefix . '(?:' . $def['keywords'] . ')/u' : '/(?<!\p{L})(?:' . $def['keywords'] . ')/u';
+				if ( @preg_match( $pattern, $title ) ) {
+					return (int) $subs[ $key ];
 				}
 			}
 		}
 		return 0;
 	}
+
+	/* -------------------------------------------------------- Taager data */
 
 	/**
 	 * The Taager category id of a product: from its meta, else from the
@@ -655,29 +665,32 @@ class Hayak_Product_Category {
 		return $url && preg_match( '~/products/(\d+)~', $url, $m ) ? (int) $m[1] : 0;
 	}
 
+	/* ------------------------------------------------------------- Terms */
+
 	/**
-	 * Store subcategory term ids by key, creating the missing ones under their
-	 * root. Cached in OPTION_SUBS with the map version.
+	 * Subcategory term ids by map key, creating the missing terms under their
+	 * root. Cached in OPTION_SUBS with the hash of the map they came from.
 	 */
 	public static function subs( $fresh = false ) {
 		static $cache = null;
 		if ( null !== $cache && ! $fresh ) {
 			return $cache;
 		}
+		$hash  = self::map_hash();
 		$saved = get_option( self::OPTION_SUBS, array() );
-		if ( ! $fresh && is_array( $saved ) && (int) ( $saved['version'] ?? 0 ) === self::MAP_VERSION ) {
+		if ( ! $fresh && is_array( $saved ) && (string) ( $saved['hash'] ?? '' ) === $hash ) {
 			$cache = $saved;
 			return $cache;
 		}
 		$ids = array();
-		foreach ( self::SUBS as $key => $def ) {
-			$parent = self::ROOTS[ $def[0] ];
-			$term   = $def[3] ? get_term( (int) $def[3], 'product_cat' ) : null;
+		foreach ( self::map()['subs'] as $key => $def ) {
+			$parent = self::root_id( $def['root'] );
+			$term   = $def['id'] ? get_term( $def['id'], 'product_cat' ) : null;
 			if ( ! $term instanceof WP_Term || (int) $term->parent !== $parent ) {
-				$term = get_term_by( 'slug', $def[2], 'product_cat' );
+				$term = get_term_by( 'slug', $def['slug'], 'product_cat' );
 				if ( ! $term instanceof WP_Term || (int) $term->parent !== $parent ) {
 					$term = null;
-					foreach ( get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'parent' => $parent, 'name' => $def[1] ) ) as $found ) {
+					foreach ( get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'parent' => $parent, 'name' => $def['name'] ) ) as $found ) {
 						if ( $found instanceof WP_Term ) {
 							$term = $found;
 							break;
@@ -686,7 +699,7 @@ class Hayak_Product_Category {
 				}
 			}
 			if ( ! $term instanceof WP_Term ) {
-				$created = wp_insert_term( $def[1], 'product_cat', array( 'parent' => $parent, 'slug' => $def[2] ) );
+				$created = wp_insert_term( $def['name'], 'product_cat', array( 'parent' => $parent, 'slug' => $def['slug'] ) );
 				if ( is_wp_error( $created ) ) {
 					continue;
 				}
@@ -696,11 +709,13 @@ class Hayak_Product_Category {
 				$ids[ $key ] = (int) $term->term_id;
 			}
 		}
-		$ids['version'] = self::MAP_VERSION;
+		$ids['hash'] = $hash;
 		update_option( self::OPTION_SUBS, $ids, true );
 		$cache = $ids;
 		return $cache;
 	}
+
+	/* ------------------------------------------------------------- Sweeps */
 
 	/**
 	 * Daily, or once after a map change ($all): queue every product that needs
@@ -722,7 +737,7 @@ class Hayak_Product_Category {
 			        WHERE r.object_id = p.ID AND t.taxonomy = 'product_cat' AND t.parent <> 0 ) > 1 )",
 			gmdate( 'Y-m-d H:i:s', $since ? $since - DAY_IN_SECONDS : 0 ),
 			self::META_VERSION,
-			(string) self::MAP_VERSION,
+			self::map_hash(),
 			(int) get_option( 'default_product_cat' ),
 			(int) get_option( 'default_product_cat' )
 		);
@@ -730,7 +745,16 @@ class Hayak_Product_Category {
 		$ids = $wpdb->get_col( "SELECT p.ID FROM {$wpdb->posts} p WHERE p.post_type = 'product' AND p.post_status IN ('publish','draft','pending','private') AND {$where} ORDER BY p.ID DESC" );
 		update_option(
 			self::OPTION_LAST,
-			array( 'time' => time(), 'queued' => count( $ids ), 'done' => 0, 'changed' => 0, 'unresolved' => array(), 'pending' => array_map( 'intval', $ids ) ),
+			array(
+				'time'       => time(),
+				'map_hash'   => self::map_hash(),
+				'map_error'  => (string) get_option( self::OPTION_MAP_ERROR, '' ),
+				'queued'     => count( $ids ),
+				'done'       => 0,
+				'changed'    => 0,
+				'unresolved' => array(),
+				'pending'    => array_map( 'intval', $ids ),
+			),
 			false
 		);
 		self::batch();
