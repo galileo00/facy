@@ -30,6 +30,78 @@
 - **القسم (لو غير مصنّف بس):**
   - الأقسام: 298 المنزل والمطبخ، 299 الإلكترونيات، 300 الصحة والجمال، 301 الترفيه والألعاب، 302 الرياضة واللياقة، 303 السيارة، 188 أدوات وإصلاحات.
   - الإضافة (Hayak_Product_Category) بتصنّف لوحدها حسب كود تاجر وبتبعت القسم الجديد لجوجل. لو لقيت منتج لسه غير مصنّف، صنّفه بإيدك، واحفظه بعدها بـ wc_update_product بـ status = publish، واكتب الـSKU بتاعه في التقرير.
+
+### فحوصات الأقسام (كل يوم، بعد المنتجات الجديدة)
+الأقسام الرئيسية (parent = 0): 298 المنزل والمطبخ، 299 الإلكترونيات، 300 الصحة والجمال، 301 الترفيه والألعاب، 302 الرياضة واللياقة، 303 السيارة، 188 أدوات وإصلاحات. والقسم 19 "غير مصنّف".
+الأقسام الفرعية وأبوها:
+- 298: 313 أدوات تخييم، 315 كشافات، 310 مكانس كهربائية، 319 مكيفات صحراوية، 321 قطاعات خضار، 320 مراوح، 318 دفايات.
+- 299: 317 أجهزة تابلت، 309 كاميرات مراقبة، 312 جوالات.
+- 300: 314 أجهزة مساج.
+- 188: 316 دريل كهربائي وشنيور.
+القسم الرئيسي لأي منتج = القسم نفسه لو parent = 0، أو الـparent بتاعه لو فرعي.
+
+**طريقة التعديل في الفحوصات التلاتة:**
+- حط الأقسام الصح بـ wp_add_post_terms (taxonomy = product_cat، append = false)، بالأقسام كلها اللي المنتج المفروض يفضل فيها، والفرعي لو موجود.
+- بعدها احفظه بـ wc_update_product بـ status = publish.
+- بعد ما تراجع أي منتج في الفحوصات دي، سجّل عليه meta اسمه _hayak_cat_checked = تاريخ النهارده، سواء عدلته أو سيبته. ما ترجعش تراجع منتج عليه الـmeta ده، إلا لو اتغير قسمه بعدها.
+- أقصى حاجة 20 منتج في التشغيلة للتلات فحوصات مع بعض. ولو فيه أكتر، اكتب العدد الباقي في التقرير.
+
+**فحص 1: منتج في قسم حقيقي ولسه في "غير مصنّف" كمان.** شيل 19 وسيب الباقي زي ما هو. ده تعديل أكيد ومش محتاج تفكير.
+```sql
+SELECT DISTINCT tr.object_id FROM 6F27TMRe_term_relationships tr
+JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.term_id = 19
+JOIN 6F27TMRe_posts p ON p.ID = tr.object_id AND p.post_type = 'product' AND p.post_status = 'publish'
+WHERE EXISTS (SELECT 1 FROM 6F27TMRe_term_relationships r2 JOIN 6F27TMRe_term_taxonomy t2 ON t2.term_taxonomy_id = r2.term_taxonomy_id AND t2.taxonomy = 'product_cat' AND t2.term_id <> 19 WHERE r2.object_id = tr.object_id);
+```
+
+**فحص 2: منتج في قسمين رئيسيين أو أكتر.**
+- المنتج المفروض يبقى في قسم رئيسي واحد بس، ومعاه الفرعي بتاعه لو موجود.
+- اختار القسم حسب استخدام المنتج من عنوانه:
+  - مروحة ومكيف ودفاية ومكنسة وموقد: المنزل والمطبخ، حتى لو كهربائي.
+  - جهاز مساج: الصحة والجمال.
+  - إكسسوار عربية: السيارة.
+- لو المنتج في قسم فرعي، القسم الرئيسي يبقى أبو الفرعي.
+```sql
+SELECT p.ID, p.post_title, GROUP_CONCAT(DISTINCT tt.term_id) terms, GROUP_CONCAT(DISTINCT IF(tt.parent = 0, tt.term_id, tt.parent)) roots
+FROM 6F27TMRe_posts p
+JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
+JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id <> 19
+WHERE p.post_type = 'product' AND p.post_status = 'publish'
+  AND NOT EXISTS (SELECT 1 FROM 6F27TMRe_postmeta c WHERE c.post_id = p.ID AND c.meta_key = '_hayak_cat_checked')
+GROUP BY p.ID HAVING COUNT(DISTINCT IF(tt.parent = 0, tt.term_id, tt.parent)) > 1
+ORDER BY p.ID DESC LIMIT 20;
+```
+
+**فحص 3: منتج في قسم غلط.**
+- الاستعلام ده بيجيب المنتجات اللي قسمها الرئيسي مختلف عن القسم اللي فيه 70% أو أكتر من المنتجات اللي ليها نفس كود تاجر (أول 4 حروف بعد SA في الـSKU)، بشرط إن الكود عليه 8 منتجات على الأقل.
+- ده مؤشر بس، مش حكم: كود تاجر ساعات بيجمع حاجات مختلفة.
+- اقرا عنوان المنتج وأول 300 حرف من وصفه، وقرر بنفسك:
+  - لو المنتج فعلًا مكانه في القسم المتوقع (expected) أو في قسم تالت أنسب، انقله.
+  - لو قسمه الحالي صح، سيبه.
+  - في الحالتين سجّل _hayak_cat_checked.
+- الأقسام الفرعية: حطه في فرعي لو اسمه بيوصف المنتج بالظبط (مثلًا مروحة → 320 مع 298، كاميرا مراقبة → 309 مع 299).
+```sql
+WITH r AS (
+  SELECT p.ID, UPPER(SUBSTRING(s.meta_value, 3, 4)) code, IF(tt.parent = 0, tt.term_id, tt.parent) root
+  FROM 6F27TMRe_posts p
+  JOIN 6F27TMRe_postmeta s ON s.post_id = p.ID AND s.meta_key = '_sku' AND s.meta_value LIKE 'SA%'
+  JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
+  JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id <> 19
+  WHERE p.post_type = 'product' AND p.post_status = 'publish'),
+c AS (SELECT code, root, COUNT(DISTINCT ID) n FROM r GROUP BY code, root),
+t AS (SELECT code, SUM(n) total, MAX(n) top FROM c GROUP BY code),
+m AS (SELECT c.code, c.root FROM c JOIN t ON t.code = c.code AND c.n = t.top WHERE t.total >= 8 AND t.top / t.total >= 0.7)
+SELECT r.ID, r.code, GROUP_CONCAT(DISTINCT r.root) current_roots, m.root expected
+FROM r JOIN m ON m.code = r.code
+WHERE NOT EXISTS (SELECT 1 FROM 6F27TMRe_postmeta k WHERE k.post_id = r.ID AND k.meta_key = '_hayak_cat_checked')
+GROUP BY r.ID, r.code, m.root HAVING SUM(r.root = m.root) = 0
+ORDER BY r.ID DESC LIMIT 20;
+```
+
+في التقرير اكتب:
+- عدد المنتجات في كل فحص.
+- كام واحد اتنقل ومن فين لفين.
+- كام واحد فاضل لبكرة.
 - **الوصف القصير جدًا:** اكتب وصف من 400 لـ900 حرف: جملة افتتاحية، وبعدها "المميزات:" و5-7 سطور تبدأ بـ"- ". الحقائق من نص المنتج بس.
 - احفظ من خلال wc_update_product (العنوان/الوصف) و wp_update_post_meta (حقول Rank Math)، علشان المزامنة مع جوجل تشتغل.
 
