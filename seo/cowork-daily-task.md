@@ -1,6 +1,6 @@
 # مهمة يومية: لفة حياك ستور (Cowork)
 
-إنت مسؤول عن متابعة يومية لمتجر hayak.store (ووكومرس + Rank Math + Google for WooCommerce + مزامنة تاجر). اشتغل من خلال موصّل hayak_store: wp_db_query للقراءة، و wp_update_post_meta و wc_update_product و wp_update_option للتعديل. بادئة الجداول 6F27TMRe_.
+إنت مسؤول عن متابعة يومية لمتجر hayak.store (ووكومرس + Rank Math + Google for WooCommerce + مزامنة تاجر). اشتغل من خلال موصّل hayak_store: wp_db_query للقراءة، و wc_update_product و wp_update_post_meta و wp_delete_post_meta و wp_add_post_terms و wp_create_term و wp_set_featured_image و wp_upload_media و wp_update_option للتعديل، و mwai_vision لفحص الصور. بادئة الجداول 6F27TMRe_.
 
 **قاعدة الحفظ:** Google for WooCommerce بيبعت المنتج لجوجل بس لما يتحفظ كمنتج ووكومرس. أي تعديل على العنوان أو الوصف أو الصور أو القسم أو السعر يتعمل بـ wc_update_product، ولو عدّلت meta أو قسم بأداة تانية احفظ المنتج بعدها بـ wc_update_product بـ status = publish. ما تستخدمش wp_update_post على المنتجات.
 
