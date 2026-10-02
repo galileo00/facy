@@ -40,13 +40,27 @@
 - 188: 316 دريل كهربائي وشنيور.
 القسم الرئيسي لأي منتج = القسم نفسه لو parent = 0، أو الـparent بتاعه لو فرعي.
 
-**طريقة التعديل في الفحوصات التلاتة:**
-- حط الأقسام الصح بـ wp_add_post_terms (taxonomy = product_cat، append = false)، بالأقسام كلها اللي المنتج المفروض يفضل فيها، والفرعي لو موجود.
-- بعدها احفظه بـ wc_update_product بـ status = publish.
-- بعد ما تراجع أي منتج في الفحوصات دي، سجّل عليه meta اسمه _hayak_cat_checked = تاريخ النهارده، سواء عدلته أو سيبته. ما ترجعش تراجع منتج عليه الـmeta ده، إلا لو اتغير قسمه بعدها.
-- أقصى حاجة 20 منتج في التشغيلة للتلات فحوصات مع بعض. ولو فيه أكتر، اكتب العدد الباقي في التقرير.
+**القاعدة: القسم الرئيسي بيتحدد من كود تاجر في الـSKU وخلاص.** الـSKU بيبدأ بـ SA، وبعدها رقمين هما قسم تاجر الرئيسي:
+- SA01 → 299 الإلكترونيات
+- SA03 → 298 المنزل والمطبخ
+- SA04 → 300 الصحة والجمال
+- SA05: تاجر بيجمع فيه كذا قسم، فبيتحدد من الرقمين اللي بعدهم:
+  - SA0501 → 303 السيارة
+  - SA0502 → 302 الرياضة واللياقة
+  - SA0503 → 301 الترفيه والألعاب
+  - SA0504 → 188 أدوات وإصلاحات
+- أي كود تاني (SA02، وباقي SA05xx، والـSKU اللي مش بيبدأ بـ SA): مفيش قاعدة. ما تلمسش قسمه، واكتب عدده في التقرير بس.
 
-**فحص 1: منتج في قسم حقيقي ولسه في "غير مصنّف" كمان.** شيل 19 وسيب الباقي زي ما هو. ده تعديل أكيد ومش محتاج تفكير.
+ما تحكمش على القسم من اسم المنتج. كود تاجر هو اللي بيقرر.
+
+**طريقة التعديل:**
+- حط الأقسام بـ wp_add_post_terms (taxonomy = product_cat، append = false):
+  - القسم الرئيسي حسب الجدول.
+  - ومعاه أي قسم فرعي المنتج كان فيه، بشرط إن الفرعي ده تحت القسم الرئيسي الجديد. لو تحت قسم تاني، يتشال.
+- بعدها احفظ المنتج بـ wc_update_product بـ status = publish.
+- أقصى حاجة 30 منتج في التشغيلة، الأحدث الأول. ولو فيه أكتر، اكتب العدد الباقي في التقرير.
+
+**فحص 1: منتج في قسم حقيقي ولسه في "غير مصنّف" كمان.** شيل 19 وسيب الباقي زي ما هو.
 ```sql
 SELECT DISTINCT tr.object_id FROM 6F27TMRe_term_relationships tr
 JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.term_id = 19
@@ -54,54 +68,35 @@ JOIN 6F27TMRe_posts p ON p.ID = tr.object_id AND p.post_type = 'product' AND p.p
 WHERE EXISTS (SELECT 1 FROM 6F27TMRe_term_relationships r2 JOIN 6F27TMRe_term_taxonomy t2 ON t2.term_taxonomy_id = r2.term_taxonomy_id AND t2.taxonomy = 'product_cat' AND t2.term_id <> 19 WHERE r2.object_id = tr.object_id);
 ```
 
-**فحص 2: منتج في قسمين رئيسيين أو أكتر.**
-- المنتج المفروض يبقى في قسم رئيسي واحد بس، ومعاه الفرعي بتاعه لو موجود.
-- اختار القسم حسب استخدام المنتج من عنوانه:
-  - مروحة ومكيف ودفاية ومكنسة وموقد: المنزل والمطبخ، حتى لو كهربائي.
-  - جهاز مساج: الصحة والجمال.
-  - إكسسوار عربية: السيارة.
-- لو المنتج في قسم فرعي، القسم الرئيسي يبقى أبو الفرعي.
-```sql
-SELECT p.ID, p.post_title, GROUP_CONCAT(DISTINCT tt.term_id) terms, GROUP_CONCAT(DISTINCT IF(tt.parent = 0, tt.term_id, tt.parent)) roots
-FROM 6F27TMRe_posts p
-JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
-JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id <> 19
-WHERE p.post_type = 'product' AND p.post_status = 'publish'
-  AND NOT EXISTS (SELECT 1 FROM 6F27TMRe_postmeta c WHERE c.post_id = p.ID AND c.meta_key = '_hayak_cat_checked')
-GROUP BY p.ID HAVING COUNT(DISTINCT IF(tt.parent = 0, tt.term_id, tt.parent)) > 1
-ORDER BY p.ID DESC LIMIT 20;
-```
-
-**فحص 3: منتج في قسم غلط.**
-- الاستعلام ده بيجيب المنتجات اللي قسمها الرئيسي مختلف عن القسم اللي فيه 70% أو أكتر من المنتجات اللي ليها نفس كود تاجر (أول 4 حروف بعد SA في الـSKU)، بشرط إن الكود عليه 8 منتجات على الأقل.
-- ده مؤشر بس، مش حكم: كود تاجر ساعات بيجمع حاجات مختلفة.
-- اقرا عنوان المنتج وأول 300 حرف من وصفه، وقرر بنفسك:
-  - لو المنتج فعلًا مكانه في القسم المتوقع (expected) أو في قسم تالت أنسب، انقله.
-  - لو قسمه الحالي صح، سيبه.
-  - في الحالتين سجّل _hayak_cat_checked.
-- الأقسام الفرعية: حطه في فرعي لو اسمه بيوصف المنتج بالظبط (مثلًا مروحة → 320 مع 298، كاميرا مراقبة → 309 مع 299).
+**فحص 2: منتج قسمه الرئيسي مش زي كود تاجر، أو في أكتر من قسم رئيسي.** صلّحه حسب الجدول.
 ```sql
 WITH r AS (
-  SELECT p.ID, UPPER(SUBSTRING(s.meta_value, 3, 4)) code, IF(tt.parent = 0, tt.term_id, tt.parent) root
+  SELECT p.ID, UPPER(s.meta_value) sku, IF(tt.parent = 0, tt.term_id, tt.parent) root
   FROM 6F27TMRe_posts p
-  JOIN 6F27TMRe_postmeta s ON s.post_id = p.ID AND s.meta_key = '_sku' AND s.meta_value LIKE 'SA%'
+  JOIN 6F27TMRe_postmeta s ON s.post_id = p.ID AND s.meta_key = '_sku'
   JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
   JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id <> 19
   WHERE p.post_type = 'product' AND p.post_status = 'publish'),
-c AS (SELECT code, root, COUNT(DISTINCT ID) n FROM r GROUP BY code, root),
-t AS (SELECT code, SUM(n) total, MAX(n) top FROM c GROUP BY code),
-m AS (SELECT c.code, c.root FROM c JOIN t ON t.code = c.code AND c.n = t.top WHERE t.total >= 8 AND t.top / t.total >= 0.7)
-SELECT r.ID, r.code, GROUP_CONCAT(DISTINCT r.root) current_roots, m.root expected
-FROM r JOIN m ON m.code = r.code
-WHERE NOT EXISTS (SELECT 1 FROM 6F27TMRe_postmeta k WHERE k.post_id = r.ID AND k.meta_key = '_hayak_cat_checked')
-GROUP BY r.ID, r.code, m.root HAVING SUM(r.root = m.root) = 0
-ORDER BY r.ID DESC LIMIT 20;
+e AS (
+  SELECT r.*, CASE
+    WHEN sku LIKE 'SA01%' THEN 299 WHEN sku LIKE 'SA03%' THEN 298 WHEN sku LIKE 'SA04%' THEN 300
+    WHEN sku LIKE 'SA0501%' THEN 303 WHEN sku LIKE 'SA0502%' THEN 302
+    WHEN sku LIKE 'SA0503%' THEN 301 WHEN sku LIKE 'SA0504%' THEN 188 END expected
+  FROM r)
+SELECT ID, sku, GROUP_CONCAT(DISTINCT root) roots, expected FROM e
+WHERE expected IS NOT NULL
+GROUP BY ID, sku, expected
+HAVING COUNT(DISTINCT root) > 1 OR MAX(root = expected) = 0
+ORDER BY ID DESC LIMIT 30;
 ```
+
+**فحص 3: منتج في أكتر من قسم رئيسي والـSKU بتاعه مش في الجدول.** ما تعدلوش. اكتب عددهم وأرقامهم في التقرير، وصاحب المتجر يقرر.
 
 في التقرير اكتب:
 - عدد المنتجات في كل فحص.
 - كام واحد اتنقل ومن فين لفين.
 - كام واحد فاضل لبكرة.
+- عدد المنتجات اللي كودها مش في الجدول.
 - **الوصف القصير جدًا:** اكتب وصف من 400 لـ900 حرف: جملة افتتاحية، وبعدها "المميزات:" و5-7 سطور تبدأ بـ"- ". الحقائق من نص المنتج بس.
 - احفظ من خلال wc_update_product (العنوان/الوصف) و wp_update_post_meta (حقول Rank Math)، علشان المزامنة مع جوجل تشتغل.
 
