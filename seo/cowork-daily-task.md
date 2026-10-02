@@ -1,146 +1,86 @@
 # مهمة يومية: لفة حياك ستور (Cowork)
 
-إنت مسؤول عن متابعة يومية لمتجر hayak.store (ووكومرس + Rank Math + Google for WooCommerce + مزامنة تاجر). اشتغل من خلال موصّل hayak_store: wp_db_query للقراءة، و wc_update_product و wp_update_post_meta و wp_delete_post_meta و wp_add_post_terms و wp_create_term و wp_set_featured_image و wp_upload_media و wp_update_option للتعديل، و mwai_vision لفحص الصور. بادئة الجداول 6F27TMRe_.
+إنت مسؤول عن متابعة يومية لمتجر hayak.store (ووكومرس + Google for WooCommerce + مزامنة تاجر + إضافة Hayak Core). اشتغل من خلال موصّل hayak_store: wp_db_query للقراءة، و wc_update_product و wp_update_post_meta و wp_delete_post_meta و wp_set_featured_image و wp_upload_media و wp_update_option للتعديل، و mwai_vision لفحص الصور. بادئة الجداول 6F27TMRe_.
 
-**قاعدة الحفظ:** Google for WooCommerce بيبعت المنتج لجوجل بس لما يتحفظ كمنتج ووكومرس. أي تعديل على العنوان أو الوصف أو الصور أو القسم أو السعر يتعمل بـ wc_update_product، ولو عدّلت meta أو قسم بأداة تانية احفظ المنتج بعدها بـ wc_update_product بـ status = publish. ما تستخدمش wp_update_post على المنتجات.
+**اللفة دي بتعمل إيه وما بتعملش إيه:**
+- بتعملها: جوجل مرشنت سنتر (المنتجات المش ظاهرة، الصور، الأسلحة اللي جوجل رفضها)، المسودات المحجوزة من غير صورة، صحة الأنظمة، ومتابعة الأقسام (قراءة وتبليغ، وحل المنتجات اللي الإضافة ما عرفتش تصنيفها على تاجر).
+- ما تعملهاش أبدًا: العناوين والأوصاف وحقول Rank Math (دي مهمة السيو اليومية، ليها نصها لوحدها)، وتغيير أقسام أي منتج بإيدك (إضافة Hayak Core هي اللي بتصنّف، شوف قسم 1)، وأي تعديل في إضافة مزامنة تاجر (hayak-taager-sync) أو خياراتها.
+- ممنوع تستخدم wp_add_post_terms أو wp_create_term أو wp_update_term على product_cat. ولو لقيت منتج في قسم غلط، بلّغ بس.
+- شغّل اللفة دي الصبح، ومهمة السيو بعدها بساعتين على الأقل. ما يشتغلوش في نفس الوقت.
+
+**قاعدة الحفظ:** Google for WooCommerce بيبعت المنتج لجوجل بس لما يتحفظ كمنتج ووكومرس. أي تعديل على الصور أو meta يتبعه حفظ للمنتج بـ wc_update_product بـ status = publish. ما تستخدمش wp_update_post على المنتجات.
 
 ## قواعد توفير التوكنز (مهمة جدًا)
 - ما تقراش الكتالوج كله أبدًا. استخدم استعلامات SQL تجميعية (COUNT / GROUP BY) وهات بس IDs المنتجات اللي فيها مشكلة.
 - أي منتج مش طالع في فحص من الفحوصات تحت يبقى سليم. ما تفتحوش وما تعدلش فيه.
-- الحد الأقصى 30 منتج تعدلهم في التشغيلة. لو فيه أكتر، خد الأحدث واترك الباقي لبكرة واكتب عددهم في التقرير.
-- اقرأ من كل منتج بس الحقول اللي محتاجها: العنوان، أول 1500 حرف من الوصف، الـSKU، القسم، وحقول Rank Math.
-- حالة المتابعة محفوظة في option اسمه hayak_daily_pass (JSON: last_run، و mc_counts للعدد امبارح، و notes). اقراه في الأول واكتبه في الآخر.
+- اقرأ من كل منتج بس الحقول اللي محتاجها.
+- حالة المتابعة محفوظة في option اسمه hayak_daily_pass (JSON: last_run، و mc_counts للعدد امبارح، و notes). اقراه في الأول واكتبه في الآخر. ما تلمسش hayak_seo_pass (ده بتاع مهمة السيو).
+- لو أداة رجعت خطأ أو timeout، اعمل mcp_ping. لو ما ردش، وقّف وكمّل بكرة.
 
-## 1) المنتجات الجديدة والناقصة
-هات المنتجات المنشورة المتاحة (_stock_status = instock) اللي فيها واحدة على الأقل من دول:
-- مفيش rank_math_description.
-- قسمها الوحيد "غير مصنّف" (term 19).
-- العنوان أقل من 15 حرف، أو كله إنجليزي، أو فيه "•" أو مسافتين ورا بعض.
-- الوصف (post_content) أقل من 200 حرف.
+## 1) الأقسام: الإضافة بتصنّف، وإنت بتراجع وتبلّغ
+**القاعدة العامة:** كل منتج ليه قسم رئيسي واحد بس، ومعاه قسم فرعي واحد على الأكتر من نفس الرئيسي. مينفعش قسمين رئيسيين، ولا قسم فرعي ومعاه رئيسي غير أبوه. القسم بيتحدد من تصنيف المنتج على تاجر.
 
-لكل منتج منهم:
-- **العنوان:** عربي، من 20 لـ70 حرف، يبدأ بنوع المنتج وبعده أهم مواصفة موجودة في نصه (سعة، واط، مقاس، عدد، موديل).
-  - أي عنوان بيبدأ بـ"عرض N" أو "باقة" أو "بكج" أو "باكج" يفضل زي ما هو، لأن ده اللي بيدخّل المنتج قسم العروض.
-  - ممنوع: كلام ترويجي (أفضل، خصم، مجانًا، الأصلي)، وادعاءات علاج (علاج، يشفي)، وأي مواصفة مش مكتوبة في نص المنتج.
-  - لو العنوان كويس ما تغيرهوش.
-- **Rank Math:**
-  - rank_math_title: أقصى حاجة 60 حرف، ومعاهم " | حياك ستور".
-  - rank_math_description: من 135 لـ159 حرف.
-  - rank_math_focus_keyword: من كلمتين لـ4، ولازم تكون موجودة زي ما هي في الـrank_math_title.
-- **القسم (لو غير مصنّف بس):** حطه في قسمه حسب كود تاجر (الجدول في "فحوصات الأقسام" تحت). لو كوده مش في الجدول، صنّفه حسب نوع المنتج في واحد من الأقسام الرئيسية، واكتب الـSKU في التقرير. الإضافة (Hayak_Product_Category) بتصنّف معظم المنتجات الجديدة لوحدها، فدي حالات قليلة.
-- **الوصف القصير جدًا:** اكتب وصف من 400 لـ900 حرف: جملة افتتاحية، وبعدها "المميزات:" و5-7 سطور تبدأ بـ"- ". الحقائق من نص المنتج بس.
-- **مصدر الوصف والصور: صفحة المنتج على تاجر.**
-  - لو الوصف فاضي أو أقل من 200 حرف ومفيهوش معلومات كفاية، هات لينك المنتج على تاجر:
-    ```sql
-    SELECT REGEXP_SUBSTR(SUBSTRING(o.option_value, LOCATE(CONCAT('"', s.meta_value, '"'), o.option_value), 1500), 'https://taager\\.com/[a-z]+/products/[0-9]+') url
-    FROM 6F27TMRe_postmeta s JOIN 6F27TMRe_options o ON o.option_name = 'hts_report'
-    WHERE s.meta_key = '_sku' AND s.post_id = <ID>;
-    ```
-  - افتح اللينك واقرا وصف المنتج ومواصفاته من هناك، واكتب منه الوصف بنفس الشكل: جملة افتتاحية، وبعدها "المميزات:" و5 لـ7 سطور. الحقائق من صفحة تاجر بس.
-  - لو صفحة تاجر ما فتحتش أو مفيهاش وصف، افحص صور المنتج بـ mwai_vision، واكتب وصف بالحاجات اللي باينة في الصورة بس (الشكل، المكونات، الكلام المطبوع على العلبة). ما تخترعش مواصفات.
-  - لو برضه مش كفاية، اكتبه في "محتاج تدخل منك".
-- احفظ من خلال wc_update_product (العنوان/الوصف) و wp_update_post_meta (حقول Rank Math)، علشان المزامنة مع جوجل تشتغل.
+**مين بيعمل إيه:**
+- إضافة Hayak Core (Hayak_Product_Category) هي الوحيدة اللي بتحط الأقسام: بتقرا كود تاجر من الـSKU (SA01 إلكترونيات، SA02 أزياء، SA03 منزل، SA04 صحة وجمال، SA05 ترفيه وسيارات ورياضة وأدوات)، وبتجيب تصنيف تاجر الفرعي من كتالوج تاجر المحفوظ في الإضافة (رقم المنتج على تاجر → رقم التصنيف)، وبتحطه في أقرب قسم فرعي عندنا. بتشتغل عند حفظ أي منتج، وكمان لفة يومية بالليل.
+- إنت: بتقرا نتيجة اللفة وبتبلّغ، وبتحل المنتجات اللي الإضافة ما لقتش تصنيفها (بتقرا صفحة المنتج على تاجر وبتكتب رقم تصنيفه في meta، والإضافة تصنّفه).
+- ممنوع تغيّر قسم أي منتج بإيدك مهما كان السبب. لو شايف إن الإضافة حطت منتج في قسم غلط، اكتبه في التقرير بالرقم والقسم الحالي واللي إنت شايفه، وصاحب المتجر يقرر.
 
-### فحوصات الأقسام (كل يوم، بعد المنتجات الجديدة)
-الأقسام الرئيسية (parent = 0): 298 المنزل والمطبخ، 299 الإلكترونيات، 300 الصحة والجمال، 301 الترفيه والألعاب، 302 الرياضة واللياقة، 303 السيارة، 188 أدوات وإصلاحات، وقسم "الأزياء والإكسسوارات" (شوف تحت). والقسم 19 "غير مصنّف".
-الأقسام الفرعية وأبوها:
-- 298: 313 أدوات تخييم، 315 كشافات، 310 مكانس كهربائية، 319 مكيفات صحراوية، 321 قطاعات خضار، 320 مراوح، 318 دفايات.
-- 299: 317 أجهزة تابلت، 309 كاميرات مراقبة، 312 جوالات.
-- 300: 314 أجهزة مساج.
-- 188: 316 دريل كهربائي وشنيور.
+**الأقسام الرئيسية:** 298 المنزل والمطبخ، 299 الإلكترونيات، 300 الصحة والجمال، 301 الترفيه والألعاب، 302 الرياضة واللياقة، 303 السيارة، 188 أدوات وإصلاحات، 324 الأزياء والإكسسوارات. و19 "غير مصنّف" (مفروض يبقى فاضي).
+**الأقسام الفرعية** محفوظة في option اسمه hayak_core_category_subs (اسم مختصر → رقم القسم). تحت 298: أدوات تخييم، كشافات، مكانس كهربائية، مكيفات صحراوية، قطاعات خضار، مراوح، دفايات، خلاطات كهربائية، أدوات المطبخ، أجهزة المطبخ، أدوات التنظيف، التخزين والتنظيم، أثاث. تحت 299: أجهزة تابلت، كاميرات مراقبة، جوالات، إكسسوارات الجوال، شواحن وباور بانك. تحت 300: أجهزة مساج، العناية بالبشرة، أدوات التجميل والتصفيف، العناية بالشعر، منتجات طبية. تحت 303: داش كام للسيارة، العناية بالسيارة. تحت 188: دريل كهربائي وشنيور، أدوات كهربائية، أدوات يدوية.
 
-**قاعدة ثابتة: الأقسام الفرعية ما تتلمسش أبدًا.**
-- ما تشيلش قسم فرعي من أي منتج، وما تضيفش قسم فرعي لأي منتج (إلا في الاسترجاع اللي تحت).
-- المنتج اللي في قسم فرعي، قسمه الرئيسي هو أبو الفرعي، مهما كان كود تاجر. الجدول ما يتطبقش عليه.
-- لو المنتج في قسم فرعي ومعاه قسم رئيسي تاني غير أبو الفرعي: شيل القسم الرئيسي التاني بس، وسيب الفرعي وأبوه.
+**أ) نتيجة لفة الأقسام (كل يوم):**
+- اقرا option اسمه hayak_core_product_category_last_sweep: time (لازم يكون أحدث من 26 ساعة)، queued، done، changed، unresolved (قائمة أرقام)، pending (قائمة الباقي). لو pending فيها أرقام و time أقدم من ساعتين، يبقى الدفعات واقفة: بلّغ.
+- في التقرير اكتب: اللفة شغّالة إمتى، عدّت على كام منتج، غيّرت كام، وكام واحد ما عرفتش تصنّفه.
 
-**القسم الرئيسي للمنتج اللي مالوش قسم فرعي بيتحدد من كود تاجر في الـSKU وخلاص.** ما تحكمش من اسم المنتج.
-- SA01 → 299 الإلكترونيات
-- SA03 → 298 المنزل والمطبخ
-- SA04 → 300 الصحة والجمال
-- SA02 → الأزياء والإكسسوارات
-- SA0501 → 303 السيارة
-- SA0502 → 302 الرياضة واللياقة
-- SA0503 → 301 الترفيه والألعاب
-- SA0504 → 188 أدوات وإصلاحات
-- SA0505 → 301 الترفيه والألعاب (منتجات الأطفال)
-- SA0506 → 299 الإلكترونيات
-- SA0510 → 298 المنزل والمطبخ (تخييم وسفر)
-- أي كود تاني (زي SA0507 و SA0509، والـSKU اللي مش بيبدأ بـ SA): مفيش قاعدة. سيب المنتج زي ما هو، واكتب عدده في التقرير.
-
-**قسم الأزياء والإكسسوارات:**
-- دوّر عليه بالاسم:
-  ```sql
-  SELECT t.term_id FROM 6F27TMRe_terms t JOIN 6F27TMRe_term_taxonomy tt ON tt.term_id = t.term_id AND tt.taxonomy = 'product_cat' WHERE t.name = 'الأزياء والإكسسوارات';
-  ```
-- لو مش موجود، اعمله مرة واحدة بـ wp_create_term (taxonomy = product_cat، name = الأزياء والإكسسوارات، slug = fashion-accessories، parent = 0)، واكتب رقمه في التقرير. في الاستعلامات تحت حط رقمه مكان FASHION_ID.
-
-**طريقة التعديل:**
-- حط الأقسام بـ wp_add_post_terms (taxonomy = product_cat، append = false): القسم الرئيسي، ومعاه القسم الفرعي لو المنتج كان فيه.
-- بعدها احفظ المنتج بـ wc_update_product بـ status = publish.
-- أقصى حاجة 30 منتج في التشغيلة للفحوصات دي كلها، الأحدث الأول. ولو فيه أكتر، اكتب العدد الباقي في التقرير.
-
-**مرة واحدة بس: رجّع الأقسام الفرعية اللي اتشالت يوم 2 أكتوبر.** لو hayak_daily_pass.notes فيها "subcats restored" اتخطى الخطوة دي.
-- لفة يوم 2 أكتوبر نقلت منتجات وشالت منها القسم الفرعي. راجع المنتجات دي: 59560، 57167، 57469، 57132، 56966، 58773، 58688، 59970، 59213.
-- لو اسم المنتج بيقول بوضوح إنه واحد من الأقسام الفرعية (كشاف، فانوس أو إضاءة تخييم، مروحة منزلية، دريل)، رجّعه للقسم الفرعي ده ومعاه أبوه، واشيل أي قسم رئيسي تاني.
-- منتج للعربية (زي مروحة عربية أو دريل كفرات) سيبه في السيارة.
-- لو مش متأكد، سيبه واكتب رقمه في التقرير.
-- بعد ما تخلص، اكتب "subcats restored" في hayak_daily_pass.notes.
-
-**فحص 1: منتج ليه قسم حقيقي ولسه في "غير مصنّف".** شيل 19 بس.
+**ب) فحص القاعدة (قراءة بس):** هات المنتجات المنشورة اللي بتكسر القاعدة:
 ```sql
-SELECT DISTINCT tr.object_id FROM 6F27TMRe_term_relationships tr
-JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.term_id = 19
-JOIN 6F27TMRe_posts p ON p.ID = tr.object_id AND p.post_type = 'product' AND p.post_status = 'publish'
-WHERE EXISTS (SELECT 1 FROM 6F27TMRe_term_relationships r2 JOIN 6F27TMRe_term_taxonomy t2 ON t2.term_taxonomy_id = r2.term_taxonomy_id AND t2.taxonomy = 'product_cat' AND t2.term_id <> 19 WHERE r2.object_id = tr.object_id);
-```
-
-**فحص 2: منتج في قسم فرعي ومعاه قسم رئيسي مش أبو الفرعي.** شيل القسم الرئيسي الزيادة بس.
-```sql
-SELECT p.ID, GROUP_CONCAT(DISTINCT tt.term_id) terms
+SELECT p.ID, GROUP_CONCAT(CONCAT(tt.term_id, ':', tt.parent) ORDER BY tt.parent, tt.term_id) cats
 FROM 6F27TMRe_posts p
 JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
-JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id <> 19
+JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat'
 WHERE p.post_type = 'product' AND p.post_status = 'publish'
 GROUP BY p.ID
-HAVING SUM(tt.parent <> 0) > 0
-   AND SUM(tt.parent = 0 AND tt.term_id NOT IN (SELECT t3.parent FROM 6F27TMRe_term_relationships r3 JOIN 6F27TMRe_term_taxonomy t3 ON t3.term_taxonomy_id = r3.term_taxonomy_id AND t3.taxonomy = 'product_cat' AND t3.parent <> 0 WHERE r3.object_id = p.ID)) > 0
-LIMIT 30;
+HAVING SUM(tt.parent = 0 AND tt.term_id <> 19) <> 1
+    OR SUM(tt.parent <> 0) > 1
+    OR SUM(tt.term_id = 19) > 0
+    OR SUM(tt.parent <> 0 AND NOT EXISTS (SELECT 1 FROM 6F27TMRe_term_relationships r2 JOIN 6F27TMRe_term_taxonomy t2 ON t2.term_taxonomy_id = r2.term_taxonomy_id WHERE r2.object_id = p.ID AND t2.term_id = tt.parent)) > 0
+LIMIT 50;
 ```
+- اللي يطلع هنا وعليه meta اسمه _hayak_cat_unresolved: ده منتج الإضافة ما عرفتش تصنيفه، هتحله في (ج).
+- اللي يطلع هنا ومش عليه _hayak_cat_unresolved ومتعدل قبل وقت اللفة: ده خطأ في الإضافة. بلّغ بالأرقام وأقسامها، وما تصلحش بإيدك.
 
-**فحص 3: منتج من غير قسم فرعي، وقسمه الرئيسي مش زي الجدول أو عنده أكتر من قسم رئيسي.** صلّحه حسب الجدول.
+**ج) المنتجات اللي الإضافة ما عرفتش تصنيفها (أقصى حاجة 15 في التشغيلة، الأحدث الأول):**
 ```sql
-WITH r AS (
-  SELECT p.ID, UPPER(s.meta_value) sku, tt.term_id, tt.parent
-  FROM 6F27TMRe_posts p
-  JOIN 6F27TMRe_postmeta s ON s.post_id = p.ID AND s.meta_key = '_sku'
-  JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
-  JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id <> 19
-  WHERE p.post_type = 'product' AND p.post_status = 'publish'),
-e AS (
-  SELECT r.*, CASE
-    WHEN sku LIKE 'SA01%' THEN 299 WHEN sku LIKE 'SA03%' THEN 298 WHEN sku LIKE 'SA04%' THEN 300
-    WHEN sku LIKE 'SA02%' THEN FASHION_ID
-    WHEN sku LIKE 'SA0501%' THEN 303 WHEN sku LIKE 'SA0502%' THEN 302
-    WHEN sku LIKE 'SA0503%' THEN 301 WHEN sku LIKE 'SA0504%' THEN 188
-    WHEN sku LIKE 'SA0505%' THEN 301 WHEN sku LIKE 'SA0506%' THEN 299
-    WHEN sku LIKE 'SA0510%' THEN 298 END expected
-  FROM r)
-SELECT ID, sku, GROUP_CONCAT(term_id) terms, expected FROM e
-WHERE expected IS NOT NULL
-GROUP BY ID, sku, expected
-HAVING SUM(parent <> 0) = 0
-   AND (COUNT(DISTINCT term_id) > 1 OR MAX(term_id = expected) = 0)
-ORDER BY ID DESC LIMIT 30;
+SELECT p.ID, LEFT(p.post_title, 60) title, s.meta_value sku, u.meta_value reason, t.meta_value taager_id,
+  (SELECT GROUP_CONCAT(tt.term_id) FROM 6F27TMRe_term_relationships tr JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' WHERE tr.object_id = p.ID) cats
+FROM 6F27TMRe_posts p
+JOIN 6F27TMRe_postmeta u ON u.post_id = p.ID AND u.meta_key = '_hayak_cat_unresolved'
+JOIN 6F27TMRe_postmeta st ON st.post_id = p.ID AND st.meta_key = '_stock_status' AND st.meta_value = 'instock'
+LEFT JOIN 6F27TMRe_postmeta s ON s.post_id = p.ID AND s.meta_key = '_sku'
+LEFT JOIN 6F27TMRe_postmeta t ON t.post_id = p.ID AND t.meta_key = '_hayak_taager_id'
+WHERE p.post_type = 'product' AND p.post_status = 'publish'
+ORDER BY p.ID DESC LIMIT 15;
 ```
+- reason = "not a taager sku": منتج مش من تاجر. ما تعملش حاجة غير إنك تكتبه في التقرير مرة واحدة (سجّل رقمه في hayak_daily_pass.notes علشان ما تكرروش). صاحب المتجر يختار له قسم من شاشة تعديل المنتج، والإضافة بتحترم اختياره.
+- reason = "two roots": المنتج في قسمين رئيسيين، وتاجر حاطه في "عروض" أو "خصومات" (تصنيف ما بيقولش نوعه)، ومفيش كلمة في اسمه بتحسم. اكتبه في التقرير بالاسم والقسمين، وصاحب المتجر يسيب واحد بس من شاشة تعديل المنتج (الإضافة بتثبّت اختياره). ما تحلوش إنت.
+- أي reason تانية ("no taager id" / "taager product not in catalogue" / "leaf X not in map"):
+  1. هات لينك المنتج على تاجر: لو taager_id موجود، اللينك هو https://taager.com/sa/products/<taager_id>. لو مش موجود:
+     ```sql
+     SELECT REGEXP_SUBSTR(SUBSTRING(o.option_value, LOCATE(CONCAT('"', s.meta_value, '"'), o.option_value), 1500), 'https://taager[.]com/[a-z]+/products/[0-9]+') url
+     FROM 6F27TMRe_postmeta s JOIN 6F27TMRe_options o ON o.option_name = 'hts_report'
+     WHERE s.meta_key = '_sku' AND s.post_id = <ID>;
+     ```
+     لو مفيش لينك، اكتب المنتج في التقرير تحت "مش موجود في تقرير مزامنة تاجر" وكمّل.
+  2. افتح الصفحة واقرا تصنيف المنتج على تاجر (المسار أو خانة التصنيف، زي: المنزل > مستلزمات المطبخ > اجهزة المطبخ).
+  3. هات شجرة تصنيفات تاجر من option اسمه hayak_taager_tree (رقم التصنيف → [الاسم، رقم الأب، المستوى]). دوّر على الاسم الأعمق في المسار. لو نفس الاسم موجود مرتين (زي "ساعات" أو "العاب")، خد اللي أبوه اسمه موجود في المسار. لو ما لقيتش مطابقة، خد تصنيف الأب. لو ولا واحد موجود، اكتب المنتج في التقرير مع المسار اللي شفته على تاجر.
+  4. اكتب الرقم في meta: wp_update_post_meta بـ key = _hayak_taager_category و value = الرقم. ولو taager_id كان فاضي، اكتب كمان _hayak_taager_id برقم المنتج من اللينك.
+  5. احفظ المنتج بـ wc_update_product بـ status = publish. الإضافة بتصنّفه ساعتها لوحدها وبتشيل _hayak_cat_unresolved.
+  6. اتأكد بـ wp_get_post_terms (taxonomy = product_cat) إن المنتج بقى في قسم رئيسي واحد (ومعاه فرعي أو لأ). لو لسه فيه _hayak_cat_unresolved (reason بقت "leaf X not in map")، يبقى التصنيف ده مش في خريطة الإضافة: اكتب الرقم والاسم في التقرير تحت "تصنيف تاجر جديد محتاج يتضاف للخريطة".
+- لو صفحة تاجر ما فتحتش، سيب المنتج لبكرة واكتب عدد اللي ما اتحلوش.
 
-**فحص 4: منتج منشور مالوش أي قسم غير "غير مصنّف"، وكوده في الجدول.** حطه في قسم الجدول (زي الساعة 60195).
+**د) لو صاحب المتجر عايز منتج يفضل في قسم معين مهما قال تاجر:** هو اللي يحط meta اسمه _hayak_cat_lock = 1 على المنتج (الإضافة ساعتها بتسيب أقسامه زي ما هي، بس بتطبق قاعدة الرئيسي الواحد). إنت ما تحطش اللوك ده من نفسك.
 
-في التقرير اكتب:
-- عدد كل فحص.
-- كام واحد اتنقل ومن فين لفين.
-- كام واحد فاضل لبكرة.
-- عدد المنتجات اللي كودها مش في الجدول، وأكتر 3 أكواد متكررة منهم.
+في التقرير اكتب: نتيجة اللفة (أ)، عدد اللي كسر القاعدة (ب) ولو فيه حاجة الإضافة ما ظبطتهاش، وكام منتج حليته في (ج) من فين لفين، وكام فاضل.
 
 ## 2) جوجل مرشنت سنتر
 - **أول حاجة: قائمة المنتجات المتاحة اللي مش ظاهرة.** هات كل منتج منشور، _stock_status = instock، و _wc_gla_visibility مش dont-sync-and-show، ويكون فيه واحدة من دول:
@@ -189,7 +129,7 @@ ORDER BY ID DESC LIMIT 30;
   - المراجعة اليومية (Hayak_Merchant_Feed) بتعمل ده لوحدها: بتحط _wc_gla_visibility = dont-sync-and-show للمنتج المرفوض كسلاح وبتحفظه.
   - إنت تتأكد بس: هات المنتجات اللي عليها guns_parts_policy_violation و _wc_gla_visibility بتاعها مش dont-sync-and-show. حط لكل واحد dont-sync-and-show واحفظه بـ wc_update_product بـ status = publish، واكتبه في التقرير.
   - ما تشيلش منتج مقبول علشان كلمة في اسمه، وما تغيرش كلام المنتج علشان يعدّي.
-- **Inappropriate title / Vehicles / Adult:** غيّر العنوان لاسم المنتج الحقيقي من غير كلام مثير أو ادعاءات طبية، ومن غير ما تخبي المنتج بيعمل إيه.
+- **Inappropriate title / Vehicles / Adult:** غيّر العنوان لاسم المنتج الحقيقي من غير كلام مثير أو ادعاءات طبية، ومن غير ما تخبي المنتج بيعمل إيه (عربي، 20 لـ70 حرف، يبدأ بنوع المنتج). دي الحالة الوحيدة اللي بتغير فيها عنوان في اللفة دي، وسجّل الكود في _hayak_mc_handled علشان مهمة السيو ما ترجعش تلمس العنوان.
 - **Personal hardships:** ما تعملش حاجة. ده منع للإعلانات المخصصة بس.
 - **Inappropriate image (attribute_violated_discovery_ads_policy):** المنتج بيظهر في الشوبنج بس، وممنوع من يوتيوب و Discover و Gmail اللي كامبين PMax بتستخدمهم. اعمل نفس خطوات "صورة عليها كلام" بالظبط، بس ضيف للرسالة بتاعة mwai_vision الجملة دي: "Also answer clean=false if the image focuses on bare skin or body parts, shows a before/after comparison, or looks shocking or sexual." ولو مفيش صورة تنفع، اكتبه في التقرير.
 - **جوجل فشل يوصل للصفحة أو الصورة (landing_page_error / image_link_internal_error / image_link_broken):** جوجل فشل يفتح صفحة المنتج أو صورته. ما تحفظش المنتج بإيدك: الحفظ من غير تغيير مش بيتبعت. المراجعة اليومية (Hayak_Merchant_Feed) بتبعت المنتج المنشور المتاح تاني لوحدها مرة كل 3 أيام، وبتسجل الوقت في meta اسمه _hayak_feed_resent_at، وبتكتب الأرقام في resent جوه option اسمه hayak_core_merchant_feed_last_review.
@@ -202,10 +142,11 @@ ORDER BY ID DESC LIMIT 30;
 - **المهام المجدولة:** كل option من دول لازم يكون اتحدث في آخر 26 ساعة:
   - hayak_core_product_text_last_sweep
   - hayak_core_product_guard_last_sweep
-  - hayak_core_product_category_last_sweep
+  - hayak_core_product_category_last_sweep (المفتاح time)
   - hayak_core_merchant_feed_last_review
+  - hayak_seo_pass (المفتاح last_run): لو أقدم من 26 ساعة يبقى مهمة السيو اليومية ما اشتغلتش، بلّغ.
 - **مسودات محجوزة من غير صورة:** لكل منتج عليه meta اسمه _hayak_held_no_image (ده تعديل مسموح بيه في القسم ده):
-  - هات لينك تاجر بنفس استعلام "مصدر الوصف والصور" في القسم 1.
+  - هات لينك تاجر بنفس استعلام اللينك اللي في قسم 1 (ج).
   - افتح الصفحة وخد منها صورة المنتج الأساسية، بشرط إن ضلعها الأصغر 500 بكسل أو أكتر وما عليهاش كلام (افحصها بـ mwai_vision بنفس رسالة الصور).
   - ارفعها بـ wp_upload_media على المنتج، وحطها featured بـ wp_set_featured_image. الموقع هينشر المنتج لوحده لما تبقى عنده صورة.
   - لو مفيش صورة تنفع، اكتبه في التقرير علشان صاحب المتجر يرفع صورة.
@@ -215,9 +156,10 @@ ORDER BY ID DESC LIMIT 30;
 ## 4) التقرير
 اكتب رد قصير باللهجة المصري:
 - **أول حاجة: جدول "منتجات متاحة مش ظاهرة في جوجل"** من القائمة اللي في أول قسم 2: رقم المنتج، اسمه، السبب بالعربي البسيط، واللي هيحصل: (اتصلح النهارده / الموقع هيبعته تاني لوحده / محتاج صورة حقيقية منك / محتاج Request review منك / محتاج لوجات الاستضافة). ولو الجدول فاضي قول ده صراحة.
+- الأقسام: نتيجة لفة الإضافة، عدد اللي كسر القاعدة، كام منتج حليته من تاجر ومن فين لفين، وأي منتج شايف إنه في قسم غلط (بلاغ بس).
 - عدلت كام منتج وليه، مع الأرقام.
 - مشاكل جوجل: العدد امبارح كان كام والنهارده كام.
-- الحاجات اللي محتاجة تدخل من صاحب المتجر (صور، Request review).
+- الحاجات اللي محتاجة تدخل من صاحب المتجر (صور، Request review، تصنيف تاجر جديد للخريطة، منتجات مش من تاجر).
 - أي نظام واقف.
 
 لو مفيش حاجة جديدة وجدول المنتجات المش ظاهرة فاضي، قول سطر واحد: "كله تمام، مفيش جديد". لو الجدول فيه منتجات، لازم يتكتب حتى لو مفيش جديد.
