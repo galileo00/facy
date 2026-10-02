@@ -62,6 +62,21 @@ class Hayak_Merchant_Feed {
 	const MOVE_HOOK    = 'hayak_core_merchant_feed_move_images';
 	const OPTION_MOVED = 'hayak_core_merchant_feed_images_moved';
 
+	/**
+	 * A product whose image Google rejected waits here for a vision pick (the
+	 * Cowork daily task): the daily review changes only what the feed sends, never
+	 * the storefront, because it cannot see the pictures.
+	 */
+	const META_PICK = '_hayak_pick_image';
+
+	/** Undoes the featured images the review of 30 Sep / 1 Oct 2026 swapped without looking. */
+	const UNDO_HOOK    = 'hayak_core_merchant_feed_undo_blind';
+	const OPTION_UNDONE = 'hayak_core_merchant_feed_blind_undone';
+
+	/** Rank Math's per-URL index checks run behind every other queued job. */
+	const INSPECTION_HOOK     = 'rank_math/analytics/get_inspections_data';
+	const INSPECTION_PRIORITY = 50;
+
 	/** When the daily review last re-sent a product whose page Google could not load. */
 	const META_RESENT_AT = '_hayak_feed_resent_at';
 
@@ -127,6 +142,8 @@ class Hayak_Merchant_Feed {
 		add_action( 'woocommerce_before_product_object_save', array( __CLASS__, 'keep_out' ), 30 );
 		add_filter( 'woocommerce_gla_force_product_resync', array( __CLASS__, 'force_resync' ), 10, 2 );
 		add_action( self::MOVE_HOOK, array( __CLASS__, 'move_feed_images' ) );
+		add_action( self::UNDO_HOOK, array( __CLASS__, 'undo_blind_switch' ) );
+		add_action( 'action_scheduler_stored_action', array( __CLASS__, 'demote_inspection' ) );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
 	}
 
@@ -220,12 +237,79 @@ class Hayak_Merchant_Feed {
 		if ( ! get_option( self::OPTION_MOVED ) && ! wp_next_scheduled( self::MOVE_HOOK ) ) {
 			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::MOVE_HOOK );
 		}
+		if ( ! get_option( self::OPTION_UNDONE ) && ! wp_next_scheduled( self::UNDO_HOOK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::UNDO_HOOK );
+		}
 	}
 
 	public static function unschedule() {
 		wp_clear_scheduled_hook( self::REVIEW_HOOK );
 		wp_clear_scheduled_hook( self::REVIEW_HOOK, array( true ) );
 		wp_clear_scheduled_hook( self::MOVE_HOOK );
+		wp_clear_scheduled_hook( self::UNDO_HOOK );
+	}
+
+	/**
+	 * Rank Math schedules one index check per URL, seven seconds apart, every few
+	 * days (about 2,500 at a time). The queue runs about 90 jobs an hour, so
+	 * Google for WooCommerce's product jobs waited hours behind them (95 on
+	 * 2 Oct 2026). Action Scheduler runs the lowest priority number first, so
+	 * the checks get a higher number and run when nothing else is waiting.
+	 */
+	public static function demote_inspection( $action_id ) {
+		global $wpdb;
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->prefix}actionscheduler_actions SET priority = %d WHERE action_id = %d AND hook = %s AND priority < %d",
+				self::INSPECTION_PRIORITY,
+				(int) $action_id,
+				self::INSPECTION_HOOK,
+				self::INSPECTION_PRIORITY
+			)
+		);
+	}
+
+	/**
+	 * Once: put back the featured image of each product the review runs of 30 Sep
+	 * and 1 Oct 2026 (18:15 UTC) swapped without looking (the new main image was the next one in
+	 * the gallery, the old one went to the end of it). The old image becomes the
+	 * featured image again, the swapped-in one goes back to the front of the
+	 * gallery, and the product waits for a vision pick.
+	 */
+	public static function undo_blind_switch() {
+		global $wpdb;
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND ( meta_value BETWEEN %d AND %d OR meta_value BETWEEN %d AND %d )",
+				self::META_IMAGE_AT,
+				strtotime( '2026-09-30 18:10:00 UTC' ),
+				strtotime( '2026-09-30 18:25:00 UTC' ),
+				strtotime( '2026-10-01 18:10:00 UTC' ),
+				strtotime( '2026-10-01 18:25:00 UTC' )
+			)
+		);
+		$undone = array();
+		foreach ( $ids as $id ) {
+			$product = wc_get_product( (int) $id );
+			if ( ! $product instanceof WC_Product ) {
+				continue;
+			}
+			$featured = (int) $product->get_image_id();
+			$gallery  = array_map( 'intval', $product->get_gallery_image_ids() );
+			$rejected = self::rejected( $product );
+			$old      = $gallery ? (int) end( $gallery ) : 0;
+			if ( ! $featured || ! $old || in_array( $featured, $rejected, true ) || ! in_array( $old, $rejected, true ) ) {
+				continue;
+			}
+			array_pop( $gallery );
+			array_unshift( $gallery, $featured );
+			$product->set_image_id( $old );
+			$product->set_gallery_image_ids( array_values( array_unique( $gallery ) ) );
+			$product->update_meta_data( self::META_PICK, time() );
+			$product->save();
+			$undone[] = $product->get_id();
+		}
+		update_option( self::OPTION_UNDONE, array( 'time' => time(), 'undone' => $undone ), false );
 	}
 
 	/**
@@ -524,7 +608,10 @@ class Hayak_Merchant_Feed {
 			$product->update_meta_data( self::META_REJECTED, array_values( array_unique( $rejected ) ) );
 			$product->update_meta_data( self::META_IMAGE_AT, $now );
 			if ( $next ) {
-				self::make_main( $product, $next );
+				// The feed sends the next image (feed_image_ids skips rejected ones);
+				// the storefront waits for a vision pick.
+				$product->update_meta_data( self::META_PICK, $now );
+				$product->save_meta_data();
 				$done['switched'][] = $product->get_id();
 				unset( $report[ $product->get_id() ] );
 			} else {
@@ -535,6 +622,7 @@ class Hayak_Merchant_Feed {
 			}
 		}
 		update_option( self::OPTION_REPORT, $report, false );
+		self::resync( $done['switched'] );
 		$done['resent']  = self::resend_unavailable( $table, $now );
 		$done['missing'] = self::send_missing();
 

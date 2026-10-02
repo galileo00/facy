@@ -27,40 +27,67 @@
   - rank_math_title: أقصى حاجة 60 حرف، ومعاهم " | حياك ستور".
   - rank_math_description: من 135 لـ159 حرف.
   - rank_math_focus_keyword: من كلمتين لـ4، ولازم تكون موجودة زي ما هي في الـrank_math_title.
-- **القسم (لو غير مصنّف بس):**
-  - الأقسام: 298 المنزل والمطبخ، 299 الإلكترونيات، 300 الصحة والجمال، 301 الترفيه والألعاب، 302 الرياضة واللياقة، 303 السيارة، 188 أدوات وإصلاحات.
-  - الإضافة (Hayak_Product_Category) بتصنّف لوحدها حسب كود تاجر وبتبعت القسم الجديد لجوجل. لو لقيت منتج لسه غير مصنّف، صنّفه بإيدك، واحفظه بعدها بـ wc_update_product بـ status = publish، واكتب الـSKU بتاعه في التقرير.
+- **القسم (لو غير مصنّف بس):** حطه في قسمه حسب كود تاجر (الجدول في "فحوصات الأقسام" تحت). لو كوده مش في الجدول، صنّفه حسب نوع المنتج في واحد من الأقسام الرئيسية، واكتب الـSKU في التقرير. الإضافة (Hayak_Product_Category) بتصنّف معظم المنتجات الجديدة لوحدها، فدي حالات قليلة.
+- **الوصف القصير جدًا:** اكتب وصف من 400 لـ900 حرف: جملة افتتاحية، وبعدها "المميزات:" و5-7 سطور تبدأ بـ"- ". الحقائق من نص المنتج بس.
+- **مصدر الوصف والصور: صفحة المنتج على تاجر.**
+  - لو الوصف فاضي أو أقل من 200 حرف ومفيهوش معلومات كفاية، هات لينك المنتج على تاجر:
+    ```sql
+    SELECT REGEXP_SUBSTR(SUBSTRING(o.option_value, LOCATE(CONCAT('"', s.meta_value, '"'), o.option_value), 1500), 'https://taager\\.com/[a-z]+/products/[0-9]+') url
+    FROM 6F27TMRe_postmeta s JOIN 6F27TMRe_options o ON o.option_name = 'hts_report'
+    WHERE s.meta_key = '_sku' AND s.post_id = <ID>;
+    ```
+  - افتح اللينك واقرا وصف المنتج ومواصفاته من هناك، واكتب منه الوصف بنفس الشكل: جملة افتتاحية، وبعدها "المميزات:" و5 لـ7 سطور. الحقائق من صفحة تاجر بس.
+  - لو صفحة تاجر ما فتحتش أو مفيهاش وصف، افحص صور المنتج بـ mwai_vision، واكتب وصف بالحاجات اللي باينة في الصورة بس (الشكل، المكونات، الكلام المطبوع على العلبة). ما تخترعش مواصفات.
+  - لو برضه مش كفاية، اكتبه في "محتاج تدخل منك".
+- احفظ من خلال wc_update_product (العنوان/الوصف) و wp_update_post_meta (حقول Rank Math)، علشان المزامنة مع جوجل تشتغل.
 
 ### فحوصات الأقسام (كل يوم، بعد المنتجات الجديدة)
-الأقسام الرئيسية (parent = 0): 298 المنزل والمطبخ، 299 الإلكترونيات، 300 الصحة والجمال، 301 الترفيه والألعاب، 302 الرياضة واللياقة، 303 السيارة، 188 أدوات وإصلاحات. والقسم 19 "غير مصنّف".
+الأقسام الرئيسية (parent = 0): 298 المنزل والمطبخ، 299 الإلكترونيات، 300 الصحة والجمال، 301 الترفيه والألعاب، 302 الرياضة واللياقة، 303 السيارة، 188 أدوات وإصلاحات، وقسم "الأزياء والإكسسوارات" (شوف تحت). والقسم 19 "غير مصنّف".
 الأقسام الفرعية وأبوها:
 - 298: 313 أدوات تخييم، 315 كشافات، 310 مكانس كهربائية، 319 مكيفات صحراوية، 321 قطاعات خضار، 320 مراوح، 318 دفايات.
 - 299: 317 أجهزة تابلت، 309 كاميرات مراقبة، 312 جوالات.
 - 300: 314 أجهزة مساج.
 - 188: 316 دريل كهربائي وشنيور.
-القسم الرئيسي لأي منتج = القسم نفسه لو parent = 0، أو الـparent بتاعه لو فرعي.
 
-**القاعدة: القسم الرئيسي بيتحدد من كود تاجر في الـSKU وخلاص.** الـSKU بيبدأ بـ SA، وبعدها رقمين هما قسم تاجر الرئيسي:
+**قاعدة ثابتة: الأقسام الفرعية ما تتلمسش أبدًا.**
+- ما تشيلش قسم فرعي من أي منتج، وما تضيفش قسم فرعي لأي منتج (إلا في الاسترجاع اللي تحت).
+- المنتج اللي في قسم فرعي، قسمه الرئيسي هو أبو الفرعي، مهما كان كود تاجر. الجدول ما يتطبقش عليه.
+- لو المنتج في قسم فرعي ومعاه قسم رئيسي تاني غير أبو الفرعي: شيل القسم الرئيسي التاني بس، وسيب الفرعي وأبوه.
+
+**القسم الرئيسي للمنتج اللي مالوش قسم فرعي بيتحدد من كود تاجر في الـSKU وخلاص.** ما تحكمش من اسم المنتج.
 - SA01 → 299 الإلكترونيات
 - SA03 → 298 المنزل والمطبخ
 - SA04 → 300 الصحة والجمال
-- SA05: تاجر بيجمع فيه كذا قسم، فبيتحدد من الرقمين اللي بعدهم:
-  - SA0501 → 303 السيارة
-  - SA0502 → 302 الرياضة واللياقة
-  - SA0503 → 301 الترفيه والألعاب
-  - SA0504 → 188 أدوات وإصلاحات
-- أي كود تاني (SA02، وباقي SA05xx، والـSKU اللي مش بيبدأ بـ SA): مفيش قاعدة. ما تلمسش قسمه، واكتب عدده في التقرير بس.
+- SA02 → الأزياء والإكسسوارات
+- SA0501 → 303 السيارة
+- SA0502 → 302 الرياضة واللياقة
+- SA0503 → 301 الترفيه والألعاب
+- SA0504 → 188 أدوات وإصلاحات
+- SA0505 → 301 الترفيه والألعاب (منتجات الأطفال)
+- SA0506 → 299 الإلكترونيات
+- SA0510 → 298 المنزل والمطبخ (تخييم وسفر)
+- أي كود تاني (زي SA0507 و SA0509، والـSKU اللي مش بيبدأ بـ SA): مفيش قاعدة. سيب المنتج زي ما هو، واكتب عدده في التقرير.
 
-ما تحكمش على القسم من اسم المنتج. كود تاجر هو اللي بيقرر.
+**قسم الأزياء والإكسسوارات:**
+- دوّر عليه بالاسم:
+  ```sql
+  SELECT t.term_id FROM 6F27TMRe_terms t JOIN 6F27TMRe_term_taxonomy tt ON tt.term_id = t.term_id AND tt.taxonomy = 'product_cat' WHERE t.name = 'الأزياء والإكسسوارات';
+  ```
+- لو مش موجود، اعمله مرة واحدة بـ wp_create_term (taxonomy = product_cat، name = الأزياء والإكسسوارات، slug = fashion-accessories، parent = 0)، واكتب رقمه في التقرير. في الاستعلامات تحت حط رقمه مكان FASHION_ID.
 
 **طريقة التعديل:**
-- حط الأقسام بـ wp_add_post_terms (taxonomy = product_cat، append = false):
-  - القسم الرئيسي حسب الجدول.
-  - ومعاه أي قسم فرعي المنتج كان فيه، بشرط إن الفرعي ده تحت القسم الرئيسي الجديد. لو تحت قسم تاني، يتشال.
+- حط الأقسام بـ wp_add_post_terms (taxonomy = product_cat، append = false): القسم الرئيسي، ومعاه القسم الفرعي لو المنتج كان فيه.
 - بعدها احفظ المنتج بـ wc_update_product بـ status = publish.
-- أقصى حاجة 30 منتج في التشغيلة، الأحدث الأول. ولو فيه أكتر، اكتب العدد الباقي في التقرير.
+- أقصى حاجة 30 منتج في التشغيلة للفحوصات دي كلها، الأحدث الأول. ولو فيه أكتر، اكتب العدد الباقي في التقرير.
 
-**فحص 1: منتج في قسم حقيقي ولسه في "غير مصنّف" كمان.** شيل 19 وسيب الباقي زي ما هو.
+**مرة واحدة بس: رجّع الأقسام الفرعية اللي اتشالت يوم 2 أكتوبر.** لو hayak_daily_pass.notes فيها "subcats restored" اتخطى الخطوة دي.
+- لفة يوم 2 أكتوبر نقلت منتجات وشالت منها القسم الفرعي. راجع المنتجات دي: 59560، 57167، 57469، 57132، 56966، 58773، 58688، 59970، 59213.
+- لو اسم المنتج بيقول بوضوح إنه واحد من الأقسام الفرعية (كشاف، فانوس أو إضاءة تخييم، مروحة منزلية، دريل)، رجّعه للقسم الفرعي ده ومعاه أبوه، واشيل أي قسم رئيسي تاني.
+- منتج للعربية (زي مروحة عربية أو دريل كفرات) سيبه في السيارة.
+- لو مش متأكد، سيبه واكتب رقمه في التقرير.
+- بعد ما تخلص، اكتب "subcats restored" في hayak_daily_pass.notes.
+
+**فحص 1: منتج ليه قسم حقيقي ولسه في "غير مصنّف".** شيل 19 بس.
 ```sql
 SELECT DISTINCT tr.object_id FROM 6F27TMRe_term_relationships tr
 JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.term_id = 19
@@ -68,10 +95,23 @@ JOIN 6F27TMRe_posts p ON p.ID = tr.object_id AND p.post_type = 'product' AND p.p
 WHERE EXISTS (SELECT 1 FROM 6F27TMRe_term_relationships r2 JOIN 6F27TMRe_term_taxonomy t2 ON t2.term_taxonomy_id = r2.term_taxonomy_id AND t2.taxonomy = 'product_cat' AND t2.term_id <> 19 WHERE r2.object_id = tr.object_id);
 ```
 
-**فحص 2: منتج قسمه الرئيسي مش زي كود تاجر، أو في أكتر من قسم رئيسي.** صلّحه حسب الجدول.
+**فحص 2: منتج في قسم فرعي ومعاه قسم رئيسي مش أبو الفرعي.** شيل القسم الرئيسي الزيادة بس.
+```sql
+SELECT p.ID, GROUP_CONCAT(DISTINCT tt.term_id) terms
+FROM 6F27TMRe_posts p
+JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
+JOIN 6F27TMRe_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id <> 19
+WHERE p.post_type = 'product' AND p.post_status = 'publish'
+GROUP BY p.ID
+HAVING SUM(tt.parent <> 0) > 0
+   AND SUM(tt.parent = 0 AND tt.term_id NOT IN (SELECT t3.parent FROM 6F27TMRe_term_relationships r3 JOIN 6F27TMRe_term_taxonomy t3 ON t3.term_taxonomy_id = r3.term_taxonomy_id AND t3.taxonomy = 'product_cat' AND t3.parent <> 0 WHERE r3.object_id = p.ID)) > 0
+LIMIT 30;
+```
+
+**فحص 3: منتج من غير قسم فرعي، وقسمه الرئيسي مش زي الجدول أو عنده أكتر من قسم رئيسي.** صلّحه حسب الجدول.
 ```sql
 WITH r AS (
-  SELECT p.ID, UPPER(s.meta_value) sku, IF(tt.parent = 0, tt.term_id, tt.parent) root
+  SELECT p.ID, UPPER(s.meta_value) sku, tt.term_id, tt.parent
   FROM 6F27TMRe_posts p
   JOIN 6F27TMRe_postmeta s ON s.post_id = p.ID AND s.meta_key = '_sku'
   JOIN 6F27TMRe_term_relationships tr ON tr.object_id = p.ID
@@ -80,25 +120,27 @@ WITH r AS (
 e AS (
   SELECT r.*, CASE
     WHEN sku LIKE 'SA01%' THEN 299 WHEN sku LIKE 'SA03%' THEN 298 WHEN sku LIKE 'SA04%' THEN 300
+    WHEN sku LIKE 'SA02%' THEN FASHION_ID
     WHEN sku LIKE 'SA0501%' THEN 303 WHEN sku LIKE 'SA0502%' THEN 302
-    WHEN sku LIKE 'SA0503%' THEN 301 WHEN sku LIKE 'SA0504%' THEN 188 END expected
+    WHEN sku LIKE 'SA0503%' THEN 301 WHEN sku LIKE 'SA0504%' THEN 188
+    WHEN sku LIKE 'SA0505%' THEN 301 WHEN sku LIKE 'SA0506%' THEN 299
+    WHEN sku LIKE 'SA0510%' THEN 298 END expected
   FROM r)
-SELECT ID, sku, GROUP_CONCAT(DISTINCT root) roots, expected FROM e
+SELECT ID, sku, GROUP_CONCAT(term_id) terms, expected FROM e
 WHERE expected IS NOT NULL
 GROUP BY ID, sku, expected
-HAVING COUNT(DISTINCT root) > 1 OR MAX(root = expected) = 0
+HAVING SUM(parent <> 0) = 0
+   AND (COUNT(DISTINCT term_id) > 1 OR MAX(term_id = expected) = 0)
 ORDER BY ID DESC LIMIT 30;
 ```
 
-**فحص 3: منتج في أكتر من قسم رئيسي والـSKU بتاعه مش في الجدول.** ما تعدلوش. اكتب عددهم وأرقامهم في التقرير، وصاحب المتجر يقرر.
+**فحص 4: منتج منشور مالوش أي قسم غير "غير مصنّف"، وكوده في الجدول.** حطه في قسم الجدول (زي الساعة 60195).
 
 في التقرير اكتب:
-- عدد المنتجات في كل فحص.
+- عدد كل فحص.
 - كام واحد اتنقل ومن فين لفين.
 - كام واحد فاضل لبكرة.
-- عدد المنتجات اللي كودها مش في الجدول.
-- **الوصف القصير جدًا:** اكتب وصف من 400 لـ900 حرف: جملة افتتاحية، وبعدها "المميزات:" و5-7 سطور تبدأ بـ"- ". الحقائق من نص المنتج بس.
-- احفظ من خلال wc_update_product (العنوان/الوصف) و wp_update_post_meta (حقول Rank Math)، علشان المزامنة مع جوجل تشتغل.
+- عدد المنتجات اللي كودها مش في الجدول، وأكتر 3 أكواد متكررة منهم.
 
 ## 2) جوجل مرشنت سنتر
 - **أول حاجة: قائمة المنتجات المتاحة اللي مش ظاهرة.** هات كل منتج منشور، _stock_status = instock، و _wc_gla_visibility مش dont-sync-and-show، ويكون فيه واحدة من دول:
@@ -109,9 +151,14 @@ ORDER BY ID DESC LIMIT 30;
 - اعمل عدد لـ6F27TMRe_gla_merchant_issues حسب issue و severity، وقارنه بـmc_counts بتاع امبارح.
 - اشتغل بس على المنتجات المنشورة المتاحة اللي حالتها DISAPPROVED، واللي مش متسجل عليها meta اسمه _hayak_mc_handled فيه نفس كود المشكلة. بعد ما تتعامل مع أي منتج، ضيف الكود للـmeta ده.
 - **صورة عليها كلام أو صغيرة (image_unwanted_overlays / image_too_small):** اختار صورة نظيفة من صور المنتج نفسه، وخليها الصورة الرئيسية في الموقع نفسه (الـfeatured). الصورة اللي عليها كلام تنزل آخر المعرض، والصورة الصغيرة اللي ضلعها أقل من 250 بكسل تتشال من المنتج.
-  1. هات من 6F27TMRe_postmeta قيم _thumbnail_id و _product_image_gallery و _hayak_feed_image و _hayak_feed_rejected و _hayak_feed_image_at.
-     - لو _hayak_feed_image_at من أقل من 3 أيام، استنى: جوجل لسه ما راجعش الصورة اللي اتبعتت.
-  2. الصورة اللي بتتبعت دلوقتي (_hayak_feed_image، ولو فاضي الـfeatured) اعتبرها مرفوضة، لأن جوجل رفضها.
+  - **المنتجات اللي تشتغل عليها:** كل منتج منشور عليه meta اسمه _hayak_pick_image. دي المنتجات اللي جوجل رفض صورتها، والمراجعة اليومية بعتت لجوجل الصورة اللي بعدها في الفيد بس، ومستنية منك تختار صورة نضيفة بعينك للموقع. ابدأ بالأقدم.
+    ```sql
+    SELECT post_id, FROM_UNIXTIME(meta_value) since FROM 6F27TMRe_postmeta m JOIN 6F27TMRe_posts p ON p.ID = m.post_id AND p.post_status = 'publish'
+    WHERE m.meta_key = '_hayak_pick_image' ORDER BY m.meta_value LIMIT 15;
+    ```
+  - المراجعة اليومية مش بتغير صورة الموقع أبدًا، إنت بس اللي بتغيرها بعد الفحص بالـvision.
+  1. هات من 6F27TMRe_postmeta قيم _thumbnail_id و _product_image_gallery و _hayak_feed_rejected.
+  2. أي صورة في _hayak_feed_rejected اعتبرها مرفوضة، لأن جوجل رفضها.
   3. هات مسار كل صورة تانية مش في _hayak_feed_rejected (_wp_attached_file)، ومقاسها (أول "width" و "height" في _wp_attachment_metadata).
   4. افحص الصور واحدة واحدة بالترتيب بـ mwai_vision، على الرابط https://hayak.store/wp-content/uploads/<file>، بالرسالة دي بالظبط:
      "Google Merchant Center disapproves a product's main image if ANYTHING was added on top of the photo: promotional or marketing text in any language, prices, discount or free-delivery badges, warranty seals, logo stamps, watermarks, stickers, arrows or callouts, icons, frames or borders, or if it is a collage or infographic. Text physically printed on the product itself or on its retail packaging is allowed. Inspect the image carefully, including all four corners and edges, and answer ONLY with JSON: {\"clean\": true|false, \"found\": \"what you found\"}."
@@ -121,7 +168,9 @@ ORDER BY ID DESC LIMIT 30;
      - _product_image_gallery (بـ wp_update_post_meta) = باقي الصور بالترتيب، من غير الصورة النظيفة، والصورة الرئيسية القديمة في الآخر، ومن غير أي صورة ضلعها أقل من 250 بكسل.
      - _hayak_feed_rejected = القائمة القديمة + الصورة المرفوضة + أي صورة لقيتها عليها كلام (array أرقام).
      - _hayak_feed_image_at = الوقت الحالي (unix). ما تكتبش _hayak_feed_image.
+     - امسح _hayak_pick_image (wp_delete_post_meta).
      بعدها احفظ المنتج بـ wc_update_product بـ status = publish، علشان يتبعت لجوجل تاني.
+     - لو الصورة النضيفة اللي لقيتها هي نفسها الـfeatured الحالية، ما تغيرش حاجة غير إنك تمسح _hayak_pick_image.
   6. **لو كل الصور عليها كلام، أو المنتج صورة واحدة بس:** نضّف صورة واحدة على الأقل وخليها الصورة الرئيسية في الموقع.
      - اختار الصورة اللي المنتج فيها أوضح وأكبر.
      - اشيل الكلام بالقص الأول: قص الصورة على المنتج نفسه لحد ما الكلام والأسعار والشعارات تطلع برا. لو الكلام فوق المنتج نفسه ومينفعش يتقص، امسحه بأداة تعديل صور (مسح/inpainting للكلام بس).
@@ -129,13 +178,13 @@ ORDER BY ID DESC LIMIT 30;
      - الصورة النهائية ضلعها الأصغر 500 بكسل أو أكتر (أقل حاجة 250)، وخلفيتها مش مقطوعة من نص المنتج.
      - افحص الصورة الجديدة بـ mwai_vision بنفس الرسالة. لو مش clean، جرّب تاني مرة واحدة بس.
      - ارفعها بـ wp_upload_media على المنتج نفسه، وبعدين طبّق خطوة 5: تبقى الـfeatured، والقديمة تنزل آخر المعرض، ومتتكتبش في _hayak_feed_rejected.
-     - لو ماعرفتش تطلع صورة نضيفة من غير ما تغيّر المنتج، حط الصور كلها في _hayak_feed_rejected، واكتبه في قائمة "محتاج صورة حقيقية".
+     - لو ماعرفتش تطلع صورة نضيفة من غير ما تغيّر المنتج، امسح _hayak_pick_image، وحط الصور كلها في _hayak_feed_rejected، واكتبه في قائمة "محتاج صورة حقيقية".
      - أقصى حاجة 10 منتجات في التشغيلة للخطوة دي.
   7. **حدود الاستهلاك:**
      - أقصى حاجة 15 منتج و60 فحص vision في التشغيلة.
      - لو mwai_vision رجع 429 أو quota، وقّف الفحص خالص وكمّل بكرة. ما تحاولش تاني النهارده.
      - لو رجع timeout أو 503، جرّب مرة كمان بس.
-  - كمان المراجعة اليومية Hayak_Merchant_Feed بتجرب الصورة اللي بعدها لو جوجل فضل رافض، وبتخليها الصورة الرئيسية في الموقع. أي منتج في option اسمه hayak_core_merchant_feed_report ضيفه لقائمة "محتاج صورة حقيقية".
+  - المراجعة اليومية Hayak_Merchant_Feed بتجرب في الفيد بس الصورة اللي بعدها لو جوجل فضل رافض، وبتعلّم المنتج بـ _hayak_pick_image علشانك. أي منتج في option اسمه hayak_core_merchant_feed_report كل صوره مرفوضة: ابدأ معاه بخطوة 6 (تنضيف صورة).
 - **أسلحة (Guns and Parts):** المنتج اللي جوجل رفضه بـ guns_parts_policy_violation بس هو اللي يتشال من المرشنت سنتر، ويفضل في الموقع عادي. أي منتج جوجل قابله يفضل زي ما هو حتى لو في اسمه مسدس (مسدس حرارة، مسدس مسامير...).
   - المراجعة اليومية (Hayak_Merchant_Feed) بتعمل ده لوحدها: بتحط _wc_gla_visibility = dont-sync-and-show للمنتج المرفوض كسلاح وبتحفظه.
   - إنت تتأكد بس: هات المنتجات اللي عليها guns_parts_policy_violation و _wc_gla_visibility بتاعها مش dont-sync-and-show. حط لكل واحد dont-sync-and-show واحفظه بـ wc_update_product بـ status = publish، واكتبه في التقرير.
@@ -155,7 +204,12 @@ ORDER BY ID DESC LIMIT 30;
   - hayak_core_product_guard_last_sweep
   - hayak_core_product_category_last_sweep
   - hayak_core_merchant_feed_last_review
-- **مسودات محجوزة من غير صورة:** عدد المنتجات اللي عليها meta اسمه _hayak_held_no_image. اكتبها في التقرير علشان صاحب المتجر يرفع لها صور.
+- **مسودات محجوزة من غير صورة:** لكل منتج عليه meta اسمه _hayak_held_no_image (ده تعديل مسموح بيه في القسم ده):
+  - هات لينك تاجر بنفس استعلام "مصدر الوصف والصور" في القسم 1.
+  - افتح الصفحة وخد منها صورة المنتج الأساسية، بشرط إن ضلعها الأصغر 500 بكسل أو أكتر وما عليهاش كلام (افحصها بـ mwai_vision بنفس رسالة الصور).
+  - ارفعها بـ wp_upload_media على المنتج، وحطها featured بـ wp_set_featured_image. الموقع هينشر المنتج لوحده لما تبقى عنده صورة.
+  - لو مفيش صورة تنفع، اكتبه في التقرير علشان صاحب المتجر يرفع صورة.
+- **طابور المهام:** هات عدد gla/jobs/update_products/process_item اللي status = pending و scheduled_date_gmt أقدم من ساعتين. لو أكتر من 20، بلّغ (المنتجات مش بتوصل جوجل).
 - **منتجات منشورة من غير صورة:** لو فيه، يبقى خطأ في الحارس (Product Guard). بلّغ عنه.
 
 ## 4) التقرير
