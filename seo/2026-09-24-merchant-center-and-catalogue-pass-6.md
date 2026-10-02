@@ -272,3 +272,17 @@ The owner's rule: a product has one top-level category, plus at most one subcate
 - The migration runs in batches of 100 a minute when `MAP_VERSION` changes; the daily sweep re-files products saved since the last run and anything breaking the one-root rule. All term relationships were backed up first (`hayak_termrel_backup_20261002`).
 
 **The two Cowork tasks.** The daily sweep (`seo/cowork-daily-task.md`) keeps Merchant Center, images, held drafts and system health; on categories it only reads the sweep result, reports rule breakers, and resolves unresolved products through the Taager page. A new daily SEO task (`seo/cowork-seo-task.md`) owns product titles, descriptions and Rank Math fields, and the category pages' descriptions and Rank Math term meta, including the 14 new subcategories. Neither task assigns categories, touches the other's state option, or runs at the same time.
+
+**Result, 2 Oct 20:30 UTC.** Two sweeps (the second after the "بلسم" and SKU-group refinements) filed all 2,335 products:
+
+| | Before | After |
+|---|---|---|
+| Exactly one top-level category | 2,286 | 2,335 |
+| Two or more top-level categories | 48 | 0 |
+| In "غير مصنّف" | 1 | 0 |
+| With a subcategory | 417 | 1,345 |
+| Two subcategories | 7 | 0 |
+
+303 products changed top-level category, the largest moves being electronics to home (37, floodlights and solar lamps), tools to home (28), sport to home (14) and sport to health (13), home to toys (16, kids' products), and home to car (12). Health and beauty is the largest root after home (605), and its five new subcategories hold 364 products. 26 products are unresolved, all "no taager id": they are not in the sync plugin's report (old DENX imports and the "المفتاح الذكي" offer bundles 55708–55720), every one already in a single root and most in a subcategory, so they wait for the daily task's Taager-page lookup. Rank Math's primary category was corrected on 4 products it no longer matched.
+
+Known edges, left as Taager has them: a USB microscope sits in Taager's "cameras" and so in security cameras; one of two "دريل كفرات" listings sits in Taager's car accessories, the other in power tools; two "مساحات سيارة" offers kept the roots they had (tools, toys) because Taager files them under offers. `_hayak_cat_lock` keeps any of these as the owner sets them.
