@@ -35,13 +35,12 @@ WHERE p.post_type = 'product' AND p.post_status = 'publish'
   AND (
     rd.meta_value IS NULL OR rd.meta_value = ''
     OR CHAR_LENGTH(p.post_title) < 15
-    OR p.post_title NOT REGEXP '[؀-ۿ]'
+    OR p.post_title NOT REGEXP '[ء-ي]'
     OR p.post_title LIKE '%•%' OR p.post_title LIKE '%  %'
     OR CHAR_LENGTH(p.post_content) < 200
   )
 ORDER BY p.ID DESC LIMIT 30;
 ```
-(لو REGEXP بالعربي ما اشتغلش في النسخة، استبدله بـ `p.post_title NOT REGEXP '[ء-ي]'`.)
 
 لكل منتج منهم:
 - **العنوان:** عربي، من 20 لـ70 حرف، يبدأ بنوع المنتج وبعده أهم مواصفة موجودة في نصه (سعة، واط، مقاس، عدد، موديل).
